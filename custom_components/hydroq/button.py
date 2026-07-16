@@ -36,6 +36,7 @@ async def async_setup_entry(
         ("cal_ec", "Calibrate EC", CommandType.CALIBRATE, {"kind": "tds", "point": "std"}),
         ("cal_do", "Calibrate DO", CommandType.CALIBRATE, {"kind": "do", "point": "air"}),
         ("request_refill", "Request Refill", CommandType.REQUEST_REFILL, {}),
+        ("start_crop", "Start Crop", CommandType.START_CROP, {}),
     ]
     async_add_entities(
         [HydroQActionButton(c, key, name, ctype, payload) for key, name, ctype, payload in specs]

@@ -26,6 +26,13 @@ async def async_setup_entry(
         HydroQTextSensor(c, "last_cal_ph", "Last pH Calibration"),
         HydroQTextSensor(c, "last_cal_tds", "Last TDS Calibration"),
         HydroQTextSensor(c, "last_cal_do", "Last DO Calibration"),
+        HydroQTextSensor(c, "plant_label", "Plant"),
+        HydroQDaysSensor(c),
+        HydroQEcSensor(c, "live_ec", "EC", live=True),
+        HydroQTdsSensor(c, "live_tds", "TDS", live=True),
+        HydroQEcSensor(c, "target_ec", "Target EC", live=False),
+        HydroQTdsSensor(c, "target_tds", "Target TDS", live=False),
+        HydroQTdsFactorSensor(c),
     ]
     for i in range(1, SCHEDULE_SLOT_COUNT + 1):
         entities.append(
@@ -41,7 +48,8 @@ class HydroQTextSensor(HydroQEntity, SensorEntity):
 
     @property
     def native_value(self) -> str | None:
-        return self.coordinator.data.get(self._key)
+        val = self.coordinator.data.get(self._key)
+        return None if val is None else str(val)
 
 
 class HydroQHealthSensor(HydroQEntity, SensorEntity):
@@ -56,3 +64,84 @@ class HydroQHealthSensor(HydroQEntity, SensorEntity):
     @property
     def native_value(self) -> int:
         return int(self.coordinator.data.get("health_score", 0))
+
+
+class HydroQDaysSensor(HydroQEntity, SensorEntity):
+    _attr_name = "Days After Sow"
+    _attr_native_unit_of_measurement = "d"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_icon = "mdi:calendar-clock"
+
+    def __init__(self, coordinator: HydroQCoordinator) -> None:
+        super().__init__(coordinator, "days_after_sow")
+
+    @property
+    def native_value(self) -> int | None:
+        val = self.coordinator.data.get("days_after_sow")
+        return None if val is None else int(val)
+
+
+class HydroQEcSensor(HydroQEntity, SensorEntity):
+    _attr_native_unit_of_measurement = "mS/cm"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_icon = "mdi:flash"
+    _attr_suggested_display_precision = 2
+
+    def __init__(
+        self, coordinator: HydroQCoordinator, key: str, name: str, *, live: bool
+    ) -> None:
+        super().__init__(coordinator, key)
+        self._attr_name = name
+        self._live = live
+
+    @property
+    def native_value(self) -> float | None:
+        val = self.coordinator.data.get(self._key)
+        if val is None and not self._live:
+            val = self.coordinator.data.get("desired_ec")
+        return None if val is None else round(float(val), 3)
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        attrs: dict = {"tds_factor": self.coordinator.data.get("tds_factor", 500)}
+        if self._live:
+            attrs["derived"] = bool(self.coordinator.data.get("ec_derived"))
+        return attrs
+
+
+class HydroQTdsSensor(HydroQEntity, SensorEntity):
+    _attr_native_unit_of_measurement = "ppm"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_icon = "mdi:water-opacity"
+
+    def __init__(
+        self, coordinator: HydroQCoordinator, key: str, name: str, *, live: bool
+    ) -> None:
+        super().__init__(coordinator, key)
+        self._attr_name = name
+        self._live = live
+
+    @property
+    def native_value(self) -> float | None:
+        val = self.coordinator.data.get(self._key)
+        if val is None and not self._live:
+            val = self.coordinator.data.get("desired_ec_tds")
+        return None if val is None else round(float(val), 1)
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        factor = self.coordinator.data.get("tds_factor", 500)
+        return {"scale": f"ppm {factor}", "tds_factor": factor}
+
+
+class HydroQTdsFactorSensor(HydroQEntity, SensorEntity):
+    _attr_name = "TDS Scale"
+    _attr_icon = "mdi:scale-balance"
+
+    def __init__(self, coordinator: HydroQCoordinator) -> None:
+        super().__init__(coordinator, "tds_factor")
+
+    @property
+    def native_value(self) -> str:
+        factor = int(self.coordinator.data.get("tds_factor", 500) or 500)
+        return f"ppm {factor}"

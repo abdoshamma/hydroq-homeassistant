@@ -20,8 +20,12 @@ async def async_setup_entry(
     entities: list = [
         HydroQSetpoint(c, "desired_ph", "Desired pH", 5.0, 8.0, 0.1, "desired_ph"),
         HydroQSetpoint(c, "ph_tolerance", "pH Tolerance", 0.1, 1.0, 0.1, "ph_tolerance"),
-        HydroQSetpoint(c, "desired_ec_tds", "Desired EC/TDS", 0, 2000, 10, "desired_ec_tds"),
-        HydroQSetpoint(c, "ec_tolerance", "EC Tolerance", 10, 200, 5, "ec_tolerance"),
+        HydroQSetpoint(c, "desired_ec_tds", "Desired TDS", 0, 3500, 10, "desired_ec_tds"),
+        HydroQSetpoint(c, "ec_tolerance", "TDS Tolerance", 10, 400, 5, "ec_tolerance"),
+        HydroQSetpoint(c, "desired_ec", "Desired EC", 0.1, 5.0, 0.05, "desired_ec"),
+        HydroQSetpoint(
+            c, "ec_tolerance_ms", "EC Tolerance", 0.05, 1.0, 0.05, "ec_tolerance_ms"
+        ),
     ]
     for i in range(1, SCHEDULE_SLOT_COUNT + 1):
         entities.append(

@@ -12,18 +12,26 @@ from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import (
+    CONF_AUTO_STAGE,
     CONF_CAPABILITIES,
+    CONF_CUSTOM_RECIPES,
     CONF_ENTITY_MAP,
+    CONF_GROWTH_STAGE,
     CONF_HARDWARE_PROFILE,
     CONF_IRRIGATION_SCHEDULE,
     CONF_LAST_CALIBRATION,
     CONF_LIGHT_STAND_COUNT,
     CONF_MAX_DOSE_ML_DAY,
+    CONF_PLANT_ID,
     CONF_PUMP_ML_PER_MIN,
     CONF_SIMULATION,
+    CONF_SOW_DATE,
+    CONF_TDS_FACTOR,
     CONF_ZONE_NAME,
     CONTROLLER_LIGHT_STANDS,
     DEFAULT_MAX_DOSE_ML_DAY,
+    DEFAULT_PLANT_ID,
+    DEFAULT_TDS_FACTOR,
     DOMAIN,
     UPDATE_INTERVAL_S,
 )
@@ -99,7 +107,9 @@ class HydroQCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         )
         self.controller.set_persist_schedule(self._persist_schedule)
         self.controller.set_persist_calibration(self._persist_calibration)
+        self.controller.set_persist_crop(self._persist_crop)
         self.controller.load_calibration(entry.options.get(CONF_LAST_CALIBRATION))
+        self.controller.load_custom_recipes(entry.options.get(CONF_CUSTOM_RECIPES))
         self.apply_options(entry.options)
         self.hass.async_create_task(self.controller.events.async_load())
         if not use_sim:
@@ -116,6 +126,11 @@ class HydroQCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "warning",
             )
         )
+        # Catch up auto-stage once after boot.
+        from homeassistant.util import dt as dt_util
+
+        for ev in self.controller._tick_auto_stage(dt_util.now()):
+            self.controller.events.append(ev)
         await self.controller.events.async_flush()
 
     async def _async_park_real_actuators(self, hal: MockHAL) -> None:
@@ -147,6 +162,27 @@ class HydroQCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     def apply_options(self, options: dict[str, Any]) -> None:
         """Apply setpoints + irrigation schedule without reloading the entry."""
+        self.controller.load_custom_recipes(options.get(CONF_CUSTOM_RECIPES))
+        factor = int(options.get(CONF_TDS_FACTOR, DEFAULT_TDS_FACTOR) or DEFAULT_TDS_FACTOR)
+        factor = 700 if factor == 700 else 500
+        if factor != self.controller.tds_factor:
+            self.hass.async_create_task(
+                self.controller.handle(
+                    Command(CommandType.SET_TDS_FACTOR, {"tds_factor": factor})
+                )
+            )
+        else:
+            self.controller.tds_factor = factor
+
+        plant_id = options.get(CONF_PLANT_ID) or DEFAULT_PLANT_ID
+        if plant_id in self.controller.recipes.plants():
+            self.controller.plant_id = str(plant_id)
+        stage = options.get(CONF_GROWTH_STAGE)
+        if stage:
+            self.controller.growth_stage = str(stage)
+        self.controller.sow_date = options.get(CONF_SOW_DATE) or None
+        self.controller.auto_stage = bool(options.get(CONF_AUTO_STAGE, False))
+
         payload = {
             "desired_ph": options.get("desired_ph"),
             "ph_tolerance": options.get("ph_tolerance"),
@@ -191,10 +227,43 @@ class HydroQCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         opts[CONF_LAST_CALIBRATION] = cal
         self.hass.config_entries.async_update_entry(self.entry, options=opts)
 
+    def _persist_crop(self) -> None:
+        opts = dict(self.entry.options)
+        desired = {
+            CONF_PLANT_ID: self.controller.plant_id,
+            CONF_GROWTH_STAGE: self.controller.growth_stage,
+            CONF_SOW_DATE: self.controller.sow_date,
+            CONF_AUTO_STAGE: self.controller.auto_stage,
+            CONF_TDS_FACTOR: self.controller.tds_factor,
+            CONF_CUSTOM_RECIPES: self.controller.recipes.custom_blob(),
+            "desired_ph": self.controller.dosing.desired_ph,
+            "ph_tolerance": self.controller.dosing.ph_tolerance,
+            "desired_tds": self.controller.dosing.desired_tds,
+            "tds_tolerance": self.controller.dosing.ec_tolerance,
+        }
+        changed = False
+        for k, v in desired.items():
+            if opts.get(k) != v:
+                opts[k] = v
+                changed = True
+        if changed:
+            self.hass.config_entries.async_update_entry(self.entry, options=opts)
+
     async def _async_update_data(self) -> dict[str, Any]:
         snap = await self.controller.public_snapshot()
         data = snap.as_dict()
         data["lights_on"] = self._read_lights_on()
+        live_ec, live_tds, ec_derived = await self.controller._live_ec_tds()
+        data["live_ec"] = live_ec
+        data["live_tds"] = live_tds
+        data["ec_derived"] = ec_derived
+        data["target_ec"] = data.get("desired_ec")
+        data["target_tds"] = data.get("desired_ec_tds")
+        data["plant_options"] = self.controller.recipes.plant_options()
+        data["plant_labels"] = self.controller.recipes.plant_labels()
+        data["stage_options"] = list(
+            self.controller.recipes.stages_for(self.controller.plant_id)
+        )
         cal = self.controller.calibration.snapshot()
         data["last_cal_ph"] = self._fmt_cal(cal.get("last_ph"))
         data["last_cal_tds"] = self._fmt_cal(cal.get("last_tds"))

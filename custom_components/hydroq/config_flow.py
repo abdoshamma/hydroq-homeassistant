@@ -14,6 +14,7 @@ from homeassistant.helpers import device_registry as dr, selector
 from .const import (
     CONF_CAPABILITIES,
     CONF_CONTROLLER_DEVICE_ID,
+    CONF_CUSTOM_RECIPES,
     CONF_ENTITY_MAP,
     CONF_HARDWARE_PROFILE,
     CONF_LEVEL_SENSOR_TYPE,
@@ -22,17 +23,32 @@ from .const import (
     CONF_PUMP_ML_PER_MIN,
     CONF_RESERVOIR_VOLUME_L,
     CONF_SIMULATION,
+    CONF_TDS_FACTOR,
     CONF_ZONE_NAME,
     CONTROLLER_LIGHT_STANDS,
     DEFAULT_MAX_DOSE_ML_DAY,
+    DEFAULT_TDS_FACTOR,
     DOMAIN,
+    GROWTH_STAGES,
     LEVEL_BINARY,
     LIGHT_STAND_CHOICES,
     PROFILE_A,
+    TDS_FACTOR_CHOICES,
 )
 from .hardware.esphome_mapping import order_light_entities, suggest_entity_map
 from .hardware.profiles import PROFILES
+from .managers.recipe_manager import (
+    BUILTIN_PLANTS,
+    PlantDef,
+    Recipe,
+    RecipeManager,
+    _slug,
+    load_custom_recipes,
+    serialize_custom_recipes,
+    validate_custom_plant,
+)
 from .models.capability import legacy_entity_map_to_capabilities
+from .models.runtime import ScheduleSlot, normalize_schedule
 
 
 def _trim_lights(
@@ -270,12 +286,21 @@ class HydroQConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
 
 class HydroQOptionsFlow(config_entries.OptionsFlow):
-    """Setpoints + later lighting kit / remap."""
+    """Setpoints, lighting remap, TDS scale, and custom recipes."""
+
+    def __init__(self) -> None:
+        self._recipe_draft: dict[str, Any] = {}
+        self._stage_index = 0
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         if user_input is not None:
-            if user_input.get("next") == "lighting":
+            nxt = user_input.get("next")
+            if nxt == "lighting":
                 return await self.async_step_lighting()
+            if nxt == "recipes":
+                return await self.async_step_recipes()
+            if nxt == "tds_scale":
+                return await self.async_step_tds_scale()
             return self.async_create_entry(
                 title="",
                 data={
@@ -322,11 +347,286 @@ class HydroQOptionsFlow(config_entries.OptionsFlow):
                     {
                         "setpoints": "Save setpoints",
                         "lighting": "Change lighting kit / remap stands…",
+                        "tds_scale": "TDS meter scale (500 / 700)…",
+                        "recipes": "Manage plant recipes…",
                     }
                 ),
             }
         )
         return self.async_show_form(step_id="init", data_schema=schema)
+
+    async def async_step_tds_scale(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        opts = dict(self.config_entry.options)
+        if user_input is not None:
+            opts[CONF_TDS_FACTOR] = int(user_input[CONF_TDS_FACTOR])
+            return self.async_create_entry(title="", data=opts)
+        current = int(opts.get(CONF_TDS_FACTOR, DEFAULT_TDS_FACTOR) or DEFAULT_TDS_FACTOR)
+        schema = vol.Schema(
+            {
+                vol.Required(CONF_TDS_FACTOR, default=current): vol.In(TDS_FACTOR_CHOICES),
+            }
+        )
+        return self.async_show_form(step_id="tds_scale", data_schema=schema)
+
+    async def async_step_recipes(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        customs = load_custom_recipes(self.config_entry.options.get(CONF_CUSTOM_RECIPES))
+        custom_ids = sorted(customs.keys())
+        builtin_ids = sorted(BUILTIN_PLANTS.keys())
+
+        if user_input is not None:
+            action = user_input["action"]
+            if action == "add":
+                self._recipe_draft = {"mode": "add", "stages": [], "recipes": {}}
+                return await self.async_step_recipe_plant()
+            if action == "edit" and user_input.get("custom_plant"):
+                pid = user_input["custom_plant"]
+                plant = customs[pid]
+                self._recipe_draft = {
+                    "mode": "edit",
+                    "plant_id": plant.plant_id,
+                    "label": plant.label,
+                    "stages": list(plant.stages),
+                    "recipes": {k: v.as_dict() for k, v in plant.recipes.items()},
+                }
+                self._stage_index = 0
+                return await self.async_step_recipe_stage()
+            if action == "copy" and user_input.get("builtin_plant"):
+                src = BUILTIN_PLANTS[user_input["builtin_plant"]]
+                self._recipe_draft = {
+                    "mode": "add",
+                    "label": f"{src.label} Custom",
+                    "stages": list(src.stages),
+                    "recipes": {k: v.as_dict() for k, v in src.recipes.items()},
+                }
+                return await self.async_step_recipe_plant()
+            if action == "delete" and user_input.get("custom_plant"):
+                pid = user_input["custom_plant"]
+                customs.pop(pid, None)
+                opts = dict(self.config_entry.options)
+                opts[CONF_CUSTOM_RECIPES] = serialize_custom_recipes(customs)
+                if opts.get("plant_id") == pid:
+                    opts["plant_id"] = "generic"
+                    opts["auto_stage"] = False
+                    opts["sow_date"] = None
+                return self.async_create_entry(title="", data=opts)
+            return await self.async_step_init()
+
+        schema_dict: dict[Any, Any] = {
+            vol.Required("action", default="add"): vol.In(
+                {
+                    "add": "Add custom plant",
+                    "edit": "Edit custom plant",
+                    "copy": "Copy built-in plant",
+                    "delete": "Delete custom plant",
+                    "back": "Back",
+                }
+            ),
+        }
+        if custom_ids:
+            schema_dict[vol.Optional("custom_plant")] = vol.In(
+                {pid: customs[pid].label for pid in custom_ids}
+            )
+        schema_dict[vol.Optional("builtin_plant", default="lettuce")] = vol.In(
+            {pid: BUILTIN_PLANTS[pid].label for pid in builtin_ids}
+        )
+        return self.async_show_form(
+            step_id="recipes", data_schema=vol.Schema(schema_dict)
+        )
+
+    async def async_step_recipe_plant(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            label = str(user_input["label"]).strip()
+            stages = tuple(user_input["stages"])
+            if not label:
+                errors["base"] = "name_required"
+            elif not stages:
+                errors["base"] = "stages_required"
+            else:
+                plant_id = self._recipe_draft.get("plant_id") or f"custom_{_slug(label)}"
+                if plant_id in BUILTIN_PLANTS and self._recipe_draft.get("mode") == "add":
+                    plant_id = f"custom_{_slug(label)}"
+                self._recipe_draft["label"] = label
+                self._recipe_draft["plant_id"] = plant_id
+                self._recipe_draft["stages"] = list(stages)
+                # Drop recipes for removed stages; keep existing for kept ones.
+                kept = {
+                    st: self._recipe_draft.get("recipes", {}).get(st, {})
+                    for st in stages
+                }
+                self._recipe_draft["recipes"] = kept
+                self._stage_index = 0
+                return await self.async_step_recipe_stage()
+
+        defaults = self._recipe_draft
+        schema = vol.Schema(
+            {
+                vol.Required("label", default=defaults.get("label", "My Crop")): str,
+                vol.Required(
+                    "stages",
+                    default=defaults.get("stages")
+                    or ["Seedling", "Vegetative", "Harvest"],
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=list(GROWTH_STAGES),
+                        multiple=True,
+                        mode=selector.SelectSelectorMode.LIST,
+                    )
+                ),
+            }
+        )
+        return self.async_show_form(
+            step_id="recipe_plant", data_schema=schema, errors=errors
+        )
+
+    async def async_step_recipe_stage(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        stages = list(self._recipe_draft.get("stages") or [])
+        if not stages:
+            return await self.async_step_recipe_plant()
+        idx = min(self._stage_index, len(stages) - 1)
+        stage = stages[idx]
+        existing = self._recipe_draft.get("recipes", {}).get(stage) or {}
+
+        if user_input is not None:
+            recipe = Recipe(
+                stage=stage,
+                light_on=(int(user_input["on_hour"]), int(user_input["on_minute"])),
+                light_off=(int(user_input["off_hour"]), int(user_input["off_minute"])),
+                desired_ph=float(user_input["desired_ph"]),
+                desired_ec=float(user_input["desired_ec"]),
+                ph_tolerance=float(user_input["ph_tolerance"]),
+                ec_tolerance=float(user_input["ec_tolerance"]),
+                duration_days=int(user_input["duration_days"]),
+                schedule=tuple(
+                    normalize_schedule(
+                        [
+                            ScheduleSlot(
+                                True,
+                                int(user_input["irr1_hour"]),
+                                int(user_input["irr1_minute"]),
+                                int(user_input["irr1_min"]),
+                            ).as_dict(),
+                            ScheduleSlot(
+                                bool(user_input.get("irr2_enabled")),
+                                int(user_input["irr2_hour"]),
+                                int(user_input["irr2_minute"]),
+                                int(user_input["irr2_min"]),
+                            ).as_dict(),
+                            ScheduleSlot(False, 0, 0, 5).as_dict(),
+                            ScheduleSlot(False, 0, 0, 5).as_dict(),
+                            ScheduleSlot(False, 0, 0, 5).as_dict(),
+                        ]
+                    )
+                ),
+            )
+            self._recipe_draft.setdefault("recipes", {})[stage] = recipe.as_dict()
+            if idx + 1 < len(stages):
+                self._stage_index = idx + 1
+                return await self.async_step_recipe_stage()
+            return await self.async_step_recipe_save()
+
+        lon = existing.get("light_on") or [6, 0]
+        loff = existing.get("light_off") or [22, 0]
+        sched = normalize_schedule(existing.get("schedule"))
+        schema = vol.Schema(
+            {
+                vol.Required(
+                    "desired_ph", default=float(existing.get("desired_ph", 6.0))
+                ): vol.Coerce(float),
+                vol.Required(
+                    "ph_tolerance", default=float(existing.get("ph_tolerance", 0.3))
+                ): vol.Coerce(float),
+                vol.Required(
+                    "desired_ec", default=float(existing.get("desired_ec", 1.2))
+                ): vol.Coerce(float),
+                vol.Required(
+                    "ec_tolerance", default=float(existing.get("ec_tolerance", 0.1))
+                ): vol.Coerce(float),
+                vol.Required(
+                    "duration_days",
+                    default=int(existing.get("duration_days", 14 if idx < len(stages) - 1 else 0)),
+                ): vol.All(vol.Coerce(int), vol.Range(min=0, max=365)),
+                vol.Required("on_hour", default=int(lon[0])): vol.All(
+                    vol.Coerce(int), vol.Range(min=0, max=23)
+                ),
+                vol.Required("on_minute", default=int(lon[1])): vol.All(
+                    vol.Coerce(int), vol.Range(min=0, max=59)
+                ),
+                vol.Required("off_hour", default=int(loff[0])): vol.All(
+                    vol.Coerce(int), vol.Range(min=0, max=23)
+                ),
+                vol.Required("off_minute", default=int(loff[1])): vol.All(
+                    vol.Coerce(int), vol.Range(min=0, max=59)
+                ),
+                vol.Required("irr1_hour", default=sched[0].hour): vol.All(
+                    vol.Coerce(int), vol.Range(min=0, max=23)
+                ),
+                vol.Required("irr1_minute", default=sched[0].minute): vol.All(
+                    vol.Coerce(int), vol.Range(min=0, max=59)
+                ),
+                vol.Required("irr1_min", default=sched[0].duration_min): vol.All(
+                    vol.Coerce(int), vol.Range(min=1, max=120)
+                ),
+                vol.Required("irr2_enabled", default=sched[1].enabled): bool,
+                vol.Required("irr2_hour", default=sched[1].hour or 20): vol.All(
+                    vol.Coerce(int), vol.Range(min=0, max=23)
+                ),
+                vol.Required("irr2_minute", default=sched[1].minute): vol.All(
+                    vol.Coerce(int), vol.Range(min=0, max=59)
+                ),
+                vol.Required("irr2_min", default=sched[1].duration_min or 5): vol.All(
+                    vol.Coerce(int), vol.Range(min=1, max=120)
+                ),
+            }
+        )
+        return self.async_show_form(
+            step_id="recipe_stage",
+            data_schema=schema,
+            description_placeholders={
+                "plant": self._recipe_draft.get("label", ""),
+                "stage": stage,
+                "index": str(idx + 1),
+                "total": str(len(stages)),
+            },
+        )
+
+    async def async_step_recipe_save(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        plant_data = {
+            "plant_id": self._recipe_draft["plant_id"],
+            "label": self._recipe_draft["label"],
+            "stages": self._recipe_draft["stages"],
+            "recipes": self._recipe_draft.get("recipes", {}),
+        }
+        plant, err = validate_custom_plant(plant_data)
+        if err or plant is None:
+            return self.async_abort(reason="recipe_invalid")
+
+        if user_input is not None:
+            customs = load_custom_recipes(
+                self.config_entry.options.get(CONF_CUSTOM_RECIPES)
+            )
+            customs[plant.plant_id] = plant
+            opts = dict(self.config_entry.options)
+            opts[CONF_CUSTOM_RECIPES] = serialize_custom_recipes(customs)
+            return self.async_create_entry(title="", data=opts)
+
+        return self.async_show_form(
+            step_id="recipe_save",
+            data_schema=vol.Schema({}),
+            description_placeholders={
+                "summary": f"{plant.label} — {', '.join(plant.stages)}",
+            },
+        )
 
     async def async_step_lighting(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Add/change lights later (e.g. after flashing the relay kit)."""

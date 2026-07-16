@@ -4,7 +4,7 @@ from __future__ import annotations
 
 DOMAIN = "hydroq"
 MANUFACTURER = "HydroQ"
-VERSION = "1.8.2"
+VERSION = "1.9.0"
 CONFIG_VERSION = 2
 
 # Platform names as strings — avoids importing homeassistant at module load (unit tests).
@@ -16,6 +16,7 @@ PLATFORMS: list[str] = [
     "select",
     "button",
     "time",
+    "date",
 ]
 
 CONF_ZONE_NAME = "zone_name"
@@ -85,6 +86,18 @@ UPDATE_INTERVAL_S = 30
 DEFAULT_MAX_DOSE_ML_DAY = 500.0
 DOSING_LIMIT_COOLDOWN_S = 120
 CONF_MAX_DOSE_ML_DAY = "max_dose_ml_day"
+CONF_CUSTOM_RECIPES = "custom_recipes"
+CONF_TDS_FACTOR = "tds_factor"
+CONF_PLANT_ID = "plant_id"
+CONF_GROWTH_STAGE = "growth_stage"
+CONF_SOW_DATE = "sow_date"
+CONF_AUTO_STAGE = "auto_stage"
+DEFAULT_TDS_FACTOR = 500
+TDS_FACTOR_CHOICES: dict[int, str] = {
+    500: "500 scale (ppm ≈ EC × 500)",
+    700: "700 scale (ppm ≈ EC × 700)",
+}
+DEFAULT_PLANT_ID = "generic"
 
 ATTR_ENTRY_ID = "entry_id"
 ATTR_EVENT_NUMBER = "event_number"

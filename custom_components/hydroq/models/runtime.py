@@ -54,6 +54,8 @@ class PublicSnapshot:
     status: str = "ready"
     health_score: int = 100
     system_mode: str = "Semi-Auto"
+    plant_id: str = "generic"
+    plant_label: str = "Generic"
     growth_stage: str = "Vegetative"
     irrigation_state: str = "IDLE"
     dosing_state: str = "IDLE"
@@ -62,10 +64,16 @@ class PublicSnapshot:
     auto_lighting: bool = True
     auto_ph: bool = False
     auto_ec: bool = False
+    auto_stage: bool = False
     desired_ph: float = 6.2
     ph_tolerance: float = 0.3
     desired_ec_tds: float = 400.0
+    desired_ec: float = 0.8
     ec_tolerance: float = 50.0
+    ec_tolerance_ms: float = 0.1
+    tds_factor: int = 500
+    sow_date: str | None = None
+    days_after_sow: int | None = None
     water_ok: bool = False
     estop_active: bool = False
     refill_requested: bool = False
@@ -80,6 +88,8 @@ class PublicSnapshot:
             "status": self.status,
             "health_score": self.health_score,
             "system_mode": self.system_mode,
+            "plant_id": self.plant_id,
+            "plant_label": self.plant_label,
             "growth_stage": self.growth_stage,
             "irrigation_state": self.irrigation_state,
             "dosing_state": self.dosing_state,
@@ -88,10 +98,16 @@ class PublicSnapshot:
             "auto_lighting": self.auto_lighting,
             "auto_ph": self.auto_ph,
             "auto_ec": self.auto_ec,
+            "auto_stage": self.auto_stage,
             "desired_ph": self.desired_ph,
             "ph_tolerance": self.ph_tolerance,
             "desired_ec_tds": self.desired_ec_tds,
+            "desired_ec": self.desired_ec,
             "ec_tolerance": self.ec_tolerance,
+            "ec_tolerance_ms": self.ec_tolerance_ms,
+            "tds_factor": self.tds_factor,
+            "sow_date": self.sow_date,
+            "days_after_sow": self.days_after_sow,
             "water_ok": self.water_ok,
             "estop_active": self.estop_active,
             "refill_requested": self.refill_requested,

@@ -74,6 +74,7 @@
           "ph_tolerance": "pH tolerance",
           "desired_tds": "Desired TDS (ppm)",
           "tds_tolerance": "TDS tolerance",
+          "max_dose_ml_day": "Max dose ml / day",
           "next": "After this"
         }
       },
@@ -84,7 +85,63 @@
           "light_stand_count": "Lighting setup",
           "lights": "Grow light stand switches"
         }
+      },
+      "tds_scale": {
+        "title": "TDS meter scale",
+        "description": "Recipes use EC (mS/cm). Choose whether your meter reports ppm on the 500 or 700 scale. Targets are recomputed; no dose runs.",
+        "data": {
+          "tds_factor": "TDS scale"
+        }
+      },
+      "recipes": {
+        "title": "Manage plant recipes",
+        "description": "Built-in plants cannot be overwritten. Copy a built-in to customize, or add your own.",
+        "data": {
+          "action": "Action",
+          "custom_plant": "Custom plant",
+          "builtin_plant": "Built-in plant"
+        }
+      },
+      "recipe_plant": {
+        "title": "Plant details",
+        "data": {
+          "label": "Plant name",
+          "stages": "Stages"
+        }
+      },
+      "recipe_stage": {
+        "title": "Stage {stage} ({index}/{total})",
+        "description": "Configure {plant} — {stage}. Duration 0 on the last stage means no auto advance past it.",
+        "data": {
+          "desired_ph": "Target pH",
+          "ph_tolerance": "pH tolerance",
+          "desired_ec": "Target EC (mS/cm)",
+          "ec_tolerance": "EC tolerance (mS/cm)",
+          "duration_days": "Stage duration (days)",
+          "on_hour": "Lights on hour",
+          "on_minute": "Lights on minute",
+          "off_hour": "Lights off hour",
+          "off_minute": "Lights off minute",
+          "irr1_hour": "Irrigation 1 hour",
+          "irr1_minute": "Irrigation 1 minute",
+          "irr1_min": "Irrigation 1 minutes",
+          "irr2_enabled": "Enable irrigation 2",
+          "irr2_hour": "Irrigation 2 hour",
+          "irr2_minute": "Irrigation 2 minute",
+          "irr2_min": "Irrigation 2 minutes"
+        }
+      },
+      "recipe_save": {
+        "title": "Save recipe",
+        "description": "Save {summary}?"
       }
+    },
+    "abort": {
+      "recipe_invalid": "Recipe validation failed."
+    },
+    "error": {
+      "name_required": "Plant name is required.",
+      "stages_required": "Select at least one stage."
     }
   },
   "issues": {

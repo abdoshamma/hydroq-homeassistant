@@ -107,13 +107,17 @@ views:
               yellow: 200
               red: 0
           - type: tile
+            entity: __HQ.live_ec__
+            name: EC
+            icon: mdi:flash
+          - type: tile
+            entity: __HQ.live_tds__
+            name: TDS
+            icon: mdi:water-percent
+          - type: tile
             entity: __HAL.water_temp__
             name: Water temp
             icon: mdi:thermometer-water
-          - type: tile
-            entity: __HAL.ec__
-            name: EC
-            icon: mdi:flash
           - type: tile
             entity: __HAL.do__
             name: Dissolved O₂
@@ -122,6 +126,10 @@ views:
             entity: __HAL.co2__
             name: Air CO₂
             icon: mdi:molecule-co2
+          - type: tile
+            entity: __HQ.tds_factor__
+            name: TDS scale
+            icon: mdi:scale-balance
 
       - type: grid
         column_span: 4
@@ -948,6 +956,12 @@ views:
     icon: mdi:sprout
     badges:
       - type: entity
+        entity: __HQ.plant_label__
+        name: Plant
+        show_name: true
+        show_state: true
+        show_icon: true
+      - type: entity
         entity: __HQ.growth_stage__
         name: Stage
         show_name: true
@@ -960,8 +974,8 @@ views:
         show_state: true
         show_icon: true
       - type: entity
-        entity: __HQ.auto_irrigation__
-        name: Auto irrig.
+        entity: __HQ.days_after_sow__
+        name: Day
         show_name: true
         show_state: true
         show_icon: true
@@ -970,9 +984,15 @@ views:
         column_span: 4
         cards:
           - type: heading
-            heading: Recipe & mode
+            heading: Plant × stage
             heading_style: title
             icon: mdi:book-open-variant
+          - type: custom:mushroom-select-card
+            entity: __HQ.plant_id__
+            name: Plant
+            icon: mdi:leaf
+            primary_info: name
+            secondary_info: state
           - type: custom:mushroom-select-card
             entity: __HQ.growth_stage__
             name: Growth stage
@@ -987,8 +1007,48 @@ views:
             secondary_info: state
           - type: markdown
             content: >
-              Changing **growth stage** loads the recipe (setpoints + default schedule).
+              **Plant + stage** loads researched pH, EC, lights, and irrigation defaults.
+              Custom plants: HydroQ → Configure → Manage plant recipes.
               Modes: Manual · Semi-Auto · Full-Auto · Maintenance.
+
+      - type: grid
+        column_span: 4
+        cards:
+          - type: heading
+            heading: Crop cycle
+            heading_style: title
+            icon: mdi:calendar-start
+          - type: custom:mushroom-entity-card
+            entity: __HQ.start_crop__
+            name: Start Crop
+            icon: mdi:play-circle
+            layout: horizontal
+            tap_action:
+              action: call-service
+              service: button.press
+              confirmation:
+                text: Start crop today? Sets sow date, first stage, and enables Auto Stage.
+              target:
+                entity_id: __HQ.start_crop__
+          - type: custom:mushroom-entity-card
+            entity: __HQ.auto_stage__
+            name: Auto stage
+            icon: mdi:timeline-clock
+            layout: horizontal
+            tap_action:
+              action: toggle
+          - type: tile
+            entity: __HQ.sow_date__
+            name: Sow date
+            icon: mdi:calendar
+          - type: tile
+            entity: __HQ.days_after_sow__
+            name: Days after sow
+            icon: mdi:counter
+          - type: markdown
+            content: >
+              Auto Stage advances by days-after-sow using recipe stage durations.
+              Manual stage change turns Auto Stage off.
 
       - type: grid
         column_span: 4
@@ -1774,8 +1834,8 @@ views:
               - **Status / Health** — zone OK at a glance. Read only.
               - **Water OK** — tank has water. Pumps stay blocked when empty.
               - **Alarm** — something needs action. Tap banner → Alarms.
-              - **Stage / Mode** — change on **Grow**. Stage = crop recipe; Mode = how much auto is allowed.
-              - **pH · TDS · Temp · EC · DO · CO₂** — live sensors. Watch here; adjust on Water.
+              - **Stage / Mode** — change on **Grow**. Plant × stage loads researched recipe; Mode sets how much auto is allowed.
+              - **pH · EC · TDS · Temp · DO · CO₂** — live sensors. EC and TDS both shown (scale in TDS Scale tile).
               - **Grow lights** — master on/off without opening Lights.
               - **Auto irrigation** — follow the Grow schedule hands-free.
               - **Start / Stop irrigation** — water now, or end a run early.
@@ -1839,10 +1899,15 @@ views:
               - **Stands 1–20** — turn one aisle without changing all.
 
               **Grow**
-              - **Growth stage** — loads recommended setpoints & defaults for that crop phase.
+              - **Plant** — Lettuce, Basil, Spinach, Kale, Strawberry, Tomato, Generic, or your custom plants.
+              - **Growth stage** — loads pH, EC, lights, and irrigation for that plant × stage.
+              - **Start Crop** — sets sow date to today, first stage, enables Auto Stage.
+              - **Auto stage** — advances stages by days-after-sow (opt-in). Manual stage turns it off.
               - **System mode** — Manual · Semi-Auto · Full-Auto · Maintenance.
               - **Auto Irrigation / Lighting / pH / EC** — enable only the loops you trust.
               - **Schedule events 1–5** — enable, set start time & minutes for daily irrigation.
+              - Custom recipes: **Settings → Devices → HydroQ → Configure → Manage plant recipes**.
+              - TDS scale 500/700: same Configure menu → **TDS meter scale**.
             grid_options:
               columns: full
 

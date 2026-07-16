@@ -21,9 +21,9 @@ from ..managers.dosing_manager import DosingManager
 from ..managers.event_log_manager import EventLogManager
 from ..managers.irrigation_manager import IrrigationManager
 from ..managers.lighting_manager import LightingManager
-from ..managers.recipe_manager import RecipeManager
+from ..managers.recipe_manager import DEFAULT_TDS_FACTOR, RecipeManager, tds_to_ec
 from ..managers.scheduler_manager import SchedulerManager
-from ..models.capability import ChannelRole
+from ..models.capability import ChannelRole, SensorRole
 from ..models.runtime import PublicSnapshot, normalize_schedule
 from ..process.dosing_fsm import DosingProcess
 
@@ -61,12 +61,18 @@ class HydroQController:
         self.scheduler = SchedulerManager(hass)
 
         self.system_mode = "Semi-Auto"
+        self.plant_id = "generic"
         self.growth_stage = "Vegetative"
+        self.auto_stage = False
+        self.sow_date: str | None = None  # YYYY-MM-DD local
+        self.tds_factor = DEFAULT_TDS_FACTOR
         self.last_error: str | None = None
         self._persist_schedule: Callable[[], None] | None = None
         self._persist_calibration: Callable[[], None] | None = None
+        self._persist_crop: Callable[[], None] | None = None
         self._balance_task: asyncio.Task | None = None
         self._cal_warn_day: str | None = None
+        self._stage_advance_day: str | None = None
 
         self.scheduler.set_callback(self._on_tick)
         self.scheduler.start()
@@ -77,6 +83,9 @@ class HydroQController:
     def set_persist_calibration(self, cb: Callable[[], None] | None) -> None:
         self._persist_calibration = cb
 
+    def set_persist_crop(self, cb: Callable[[], None] | None) -> None:
+        self._persist_crop = cb
+
     def _save_schedule(self) -> None:
         if self._persist_schedule:
             self._persist_schedule()
@@ -84,6 +93,24 @@ class HydroQController:
     def _save_calibration(self) -> None:
         if self._persist_calibration:
             self._persist_calibration()
+
+    def _save_crop(self) -> None:
+        if self._persist_crop:
+            self._persist_crop()
+
+    def load_custom_recipes(self, raw: dict[str, Any] | None) -> None:
+        self.recipes.set_custom(raw)
+
+    def days_after_sow(self, now: datetime | None = None) -> int | None:
+        if not self.sow_date:
+            return None
+        try:
+            y, m, d = (int(x) for x in self.sow_date.split("-", 2))
+            sow = datetime(y, m, d).date()
+        except ValueError:
+            return None
+        today = dt_util.as_local(now or dt_util.now()).date()
+        return max(0, (today - sow).days)
 
     def load_calibration(self, data: dict[str, Any] | None) -> None:
         if not data:
@@ -192,7 +219,19 @@ class HydroQController:
                 )
             )
         elif ctype == CommandType.APPLY_GROWTH_STAGE:
-            out = self._apply_stage(str(payload.get("stage", "Vegetative")))
+            # Manual stage change disables auto-stage so tick cannot undo it.
+            if self.auto_stage:
+                self.auto_stage = False
+                self._save_crop()
+            out = self._apply_stage(str(payload.get("stage", "Vegetative")), manual=True)
+        elif ctype == CommandType.SET_PLANT:
+            out = self._set_plant(str(payload.get("plant_id", "generic")))
+        elif ctype == CommandType.START_CROP:
+            out = self._start_crop()
+        elif ctype == CommandType.SET_SOW_DATE:
+            out = self._set_sow_date(payload.get("sow_date"))
+        elif ctype == CommandType.SET_TDS_FACTOR:
+            out = self._set_tds_factor(int(payload.get("tds_factor", DEFAULT_TDS_FACTOR)))
         elif ctype == CommandType.SET_SYSTEM_MODE:
             self.system_mode = str(payload.get("mode", self.system_mode))
             if self.system_mode == "Maintenance":
@@ -211,6 +250,9 @@ class HydroQController:
                 self.dosing.auto_ph = val
             elif key == "ec":
                 self.dosing.auto_ec = val
+            elif key == "stage":
+                self.auto_stage = val
+                self._save_crop()
             out.append(DomainEvent("system.auto", f"Auto {key}={val}"))
         elif ctype == CommandType.SET_SETPOINT:
             self._set_setpoint(payload)
@@ -353,6 +395,7 @@ class HydroQController:
             self.dosing.fsm.reset_to_idle()
 
         events += await self.lighting.tick_auto(now, safety.estop_active)
+        events += self._tick_auto_stage(now)
 
         due = self.irrigation.schedule_due(now)
         if due:
@@ -645,24 +688,157 @@ class HydroQController:
         )
         return events
 
-    def _apply_stage(self, stage: str) -> list[DomainEvent]:
-        recipe = self.recipes.get(stage)
+    def _apply_stage(self, stage: str, *, manual: bool = False) -> list[DomainEvent]:
+        plant = self.recipes.get_plant(self.plant_id)
+        if stage not in plant.stages:
+            stage = plant.stages[0] if plant.stages else "Vegetative"
+        recipe = self.recipes.get(stage, self.plant_id)
         self.growth_stage = stage
         self.dosing.desired_ph = recipe.desired_ph
-        self.dosing.desired_tds = recipe.desired_tds
+        self.dosing.desired_tds = recipe.desired_tds(self.tds_factor)
         self.dosing.ph_tolerance = recipe.ph_tolerance
-        self.dosing.ec_tolerance = recipe.ec_tolerance
+        self.dosing.ec_tolerance = recipe.tds_tolerance(self.tds_factor)
         self.alarms.desired_ph = recipe.desired_ph
-        self.alarms.desired_tds = recipe.desired_tds
+        self.alarms.desired_tds = self.dosing.desired_tds
         self.alarms.ph_tolerance = recipe.ph_tolerance
-        self.alarms.ec_tolerance = recipe.ec_tolerance
+        self.alarms.ec_tolerance = self.dosing.ec_tolerance
         self.lighting.on_hour, self.lighting.on_minute = recipe.light_on
         self.lighting.off_hour, self.lighting.off_minute = recipe.light_off
         slots = normalize_schedule(list(recipe.schedule))
         self.irrigation.schedule = slots
         self.irrigation._last_fired = None
         self._save_schedule()
-        return [DomainEvent("recipe.applied", f"Applied {stage}", data={"stage": stage})]
+        self._save_crop()
+        code = "recipe.applied"
+        msg = f"Applied {plant.label} / {stage}"
+        if manual:
+            msg += " (manual)"
+        return [
+            DomainEvent(
+                code,
+                msg,
+                data={
+                    "plant_id": self.plant_id,
+                    "stage": stage,
+                    "desired_ec": recipe.desired_ec,
+                    "desired_tds": self.dosing.desired_tds,
+                    "tds_factor": self.tds_factor,
+                },
+            )
+        ]
+
+    def _set_plant(self, plant_id: str) -> list[DomainEvent]:
+        plant = self.recipes.get_plant(plant_id)
+        self.plant_id = plant.plant_id
+        # Changing plant clears crop cycle — operator must Start Crop again.
+        self.sow_date = None
+        self.auto_stage = False
+        stage = (
+            self.growth_stage
+            if self.growth_stage in plant.stages
+            else plant.stages[0]
+        )
+        events = self._apply_stage(stage)
+        events.insert(
+            0,
+            DomainEvent(
+                "recipe.plant",
+                f"Plant set to {plant.label} — Start Crop to begin auto stages",
+                data={"plant_id": self.plant_id},
+            ),
+        )
+        return events
+
+    def _start_crop(self) -> list[DomainEvent]:
+        today = dt_util.as_local(dt_util.now()).date().isoformat()
+        plant = self.recipes.get_plant(self.plant_id)
+        first = plant.stages[0] if plant.stages else "Seedling"
+        self.sow_date = today
+        self.auto_stage = True
+        events = self._apply_stage(first)
+        events.insert(
+            0,
+            DomainEvent(
+                "recipe.crop_started",
+                f"Crop started ({plant.label}) — sow {today}",
+                data={"sow_date": today, "plant_id": self.plant_id, "stage": first},
+            ),
+        )
+        self._save_crop()
+        return events
+
+    def _set_sow_date(self, raw: Any) -> list[DomainEvent]:
+        if raw in (None, "", "unknown", "unavailable"):
+            self.sow_date = None
+        else:
+            text = str(raw)[:10]
+            try:
+                y, m, d = (int(x) for x in text.split("-", 2))
+                self.sow_date = datetime(y, m, d).date().isoformat()
+            except ValueError:
+                return [
+                    DomainEvent(
+                        "recipe.sow_date",
+                        f"Invalid sow date: {raw}",
+                        "warning",
+                    )
+                ]
+        self._save_crop()
+        return [
+            DomainEvent(
+                "recipe.sow_date",
+                f"Sow date={self.sow_date or 'cleared'}",
+                data={"sow_date": self.sow_date},
+            )
+        ]
+
+    def _set_tds_factor(self, factor: int) -> list[DomainEvent]:
+        factor = 700 if int(factor) == 700 else 500
+        # Keep EC stable: recompute TDS targets from current EC.
+        current_ec = tds_to_ec(self.dosing.desired_tds, self.tds_factor)
+        current_ec_tol = tds_to_ec(self.dosing.ec_tolerance, self.tds_factor)
+        self.tds_factor = factor
+        self.dosing.desired_tds = current_ec * factor
+        self.dosing.ec_tolerance = current_ec_tol * factor
+        self.alarms.desired_tds = self.dosing.desired_tds
+        self.alarms.ec_tolerance = self.dosing.ec_tolerance
+        self._save_crop()
+        return [
+            DomainEvent(
+                "system.tds_factor",
+                f"TDS factor={factor} (targets recomputed, no dose)",
+                data={"tds_factor": factor, "desired_tds": self.dosing.desired_tds},
+            )
+        ]
+
+    def _tick_auto_stage(self, now: datetime) -> list[DomainEvent]:
+        if not self.auto_stage or not self.sow_date:
+            return []
+        day = now.strftime("%Y-%m-%d")
+        # Idempotent once per local day (also covers restart catch-up).
+        if self._stage_advance_day == day:
+            return []
+        days = self.days_after_sow(now)
+        if days is None:
+            return []
+        expected = self.recipes.expected_stage(self.plant_id, days)
+        self._stage_advance_day = day
+        if expected == self.growth_stage:
+            return []
+        events = self._apply_stage(expected)
+        events.insert(
+            0,
+            DomainEvent(
+                "recipe.stage_advanced",
+                f"Auto stage → {expected} (day {days})",
+                data={
+                    "stage": expected,
+                    "days_after_sow": days,
+                    "plant_id": self.plant_id,
+                },
+            ),
+        )
+        return events
 
     def _set_setpoint(self, payload: dict[str, Any]) -> None:
         if "desired_ph" in payload:
@@ -671,16 +847,39 @@ class HydroQController:
         if "ph_tolerance" in payload:
             self.dosing.ph_tolerance = float(payload["ph_tolerance"])
             self.alarms.ph_tolerance = self.dosing.ph_tolerance
+        if "desired_ec" in payload:
+            ec = float(payload["desired_ec"])
+            self.dosing.desired_tds = ec * self.tds_factor
+            self.alarms.desired_tds = self.dosing.desired_tds
         if "desired_ec_tds" in payload or "desired_tds" in payload:
             self.dosing.desired_tds = float(
                 payload.get("desired_ec_tds", payload.get("desired_tds"))
             )
             self.alarms.desired_tds = self.dosing.desired_tds
+        if "ec_tolerance_ms" in payload:
+            self.dosing.ec_tolerance = float(payload["ec_tolerance_ms"]) * self.tds_factor
+            self.alarms.ec_tolerance = self.dosing.ec_tolerance
         if "ec_tolerance" in payload or "tds_tolerance" in payload:
             self.dosing.ec_tolerance = float(
                 payload.get("ec_tolerance", payload.get("tds_tolerance"))
             )
             self.alarms.ec_tolerance = self.dosing.ec_tolerance
+
+    async def _live_ec_tds(self) -> tuple[float | None, float | None, bool]:
+        """Return (ec, tds, ec_derived)."""
+        from ..util import valid_float
+
+        tds = await self.hal.read_sensor(SensorRole.TDS.value)
+        ec = await self.hal.read_sensor(SensorRole.EC.value)
+        tds_f = valid_float(tds)
+        ec_f = valid_float(ec)
+        if ec_f is not None and tds_f is None:
+            return ec_f, ec_f * self.tds_factor, False
+        if tds_f is not None and ec_f is None:
+            return tds_to_ec(tds_f, self.tds_factor), tds_f, True
+        if ec_f is not None and tds_f is not None:
+            return ec_f, tds_f, False
+        return None, None, True
 
     async def public_snapshot(self) -> PublicSnapshot:
         safety = await self.device.read_safety()
@@ -701,10 +900,16 @@ class HydroQController:
         elif self.irrigation.fsm.busy:
             status = "irrigating"
 
+        plant = self.recipes.get_plant(self.plant_id)
+        desired_ec = tds_to_ec(self.dosing.desired_tds, self.tds_factor)
+        ec_tol_ms = tds_to_ec(self.dosing.ec_tolerance, self.tds_factor)
+
         snap = PublicSnapshot(
             status=status,
             health_score=max(0, score),
             system_mode=self.system_mode,
+            plant_id=self.plant_id,
+            plant_label=plant.label,
             growth_stage=self.growth_stage,
             irrigation_state=self.irrigation.fsm.state.value,
             dosing_state=self.dosing.fsm.state.value,
@@ -713,10 +918,16 @@ class HydroQController:
             auto_lighting=self.lighting.auto_enabled,
             auto_ph=self.dosing.auto_ph,
             auto_ec=self.dosing.auto_ec,
+            auto_stage=self.auto_stage,
             desired_ph=self.dosing.desired_ph,
             ph_tolerance=self.dosing.ph_tolerance,
             desired_ec_tds=self.dosing.desired_tds,
+            desired_ec=desired_ec,
             ec_tolerance=self.dosing.ec_tolerance,
+            ec_tolerance_ms=ec_tol_ms,
+            tds_factor=self.tds_factor,
+            sow_date=self.sow_date,
+            days_after_sow=self.days_after_sow(),
             water_ok=safety.water_ok,
             estop_active=safety.estop_active,
             refill_requested=self.alarms.refill_requested,
@@ -733,11 +944,16 @@ class HydroQController:
             {
                 "zone_name": self.zone_name,
                 "system_mode": self.system_mode,
+                "plant_id": self.plant_id,
                 "growth_stage": self.growth_stage,
+                "sow_date": self.sow_date,
+                "auto_stage": self.auto_stage,
+                "tds_factor": self.tds_factor,
                 "irrigation": self.irrigation.snapshot(),
                 "dosing": self.dosing.snapshot(),
                 "lighting": self.lighting.snapshot(),
                 "calibration": self.calibration.snapshot(),
                 "alarms": self.alarms.snapshot(),
+                "recipes": self.recipes.snapshot(),
             }
         )

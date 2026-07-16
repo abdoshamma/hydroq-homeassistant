@@ -22,6 +22,7 @@ async def async_setup_entry(
         HydroQAutoSwitch(c, "auto_lighting", "Auto Lighting", "lighting"),
         HydroQAutoSwitch(c, "auto_ph", "Auto pH", "ph"),
         HydroQAutoSwitch(c, "auto_ec", "Auto EC", "ec"),
+        HydroQAutoSwitch(c, "auto_stage", "Auto Stage", "stage"),
         HydroQLightsSwitch(c),
     ]
     for i in range(1, SCHEDULE_SLOT_COUNT + 1):
