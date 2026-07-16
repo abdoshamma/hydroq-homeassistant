@@ -71,13 +71,22 @@ views:
                 columns: full
           - type: markdown
             content: |
-              <div style="width:100%;display:flex;justify-content:center;align-items:center;margin:0.35rem 0 0.5rem;">
-              <img src="/hydroq/logo.png" alt="HydroQ"
-              style="display:block;margin:0 auto;max-width:160px;width:42%;height:auto;" />
+              <div style="display:flex;justify-content:center;align-items:center;margin:0;padding:0;line-height:0;">
+              <img src="/hydroq/logo.png" alt="HydroQ" width="160" height="80"
+              style="display:block;width:160px;height:80px;object-fit:contain;" />
               </div>
             grid_options:
               columns: full
               rows: 2
+            card_mod:
+              style: |
+                ha-card {
+                  width: fit-content;
+                  margin-inline: auto;
+                }
+                ha-markdown, ha-markdown.no-header {
+                  padding: 8px !important;
+                }
 
       - type: grid
         column_span: 4
