@@ -36,21 +36,36 @@ from .models.capability import legacy_entity_map_to_capabilities
 
 
 def _trim_lights(
-    hass: HomeAssistant,
+    hass: HomeAssistant | None,
     lights: list[str] | None,
     count: int,
     controller_device_id: str | None = None,
 ) -> list[str]:
     if count <= 0 or not lights:
         return []
-    ordered = order_light_entities(hass, list(lights), controller_device_id)
+    if isinstance(lights, str):
+        lights = [x.strip() for x in lights.split(",") if x.strip()]
+    ordered = (
+        order_light_entities(hass, list(lights), controller_device_id)
+        if hass is not None
+        else list(lights)
+    )
     return ordered[:count]
 
 
 def _rebuild_capabilities(data: dict[str, Any]) -> dict[str, Any]:
     ml = float(data.get(CONF_PUMP_ML_PER_MIN, 50))
+    emap = dict(data.get(CONF_ENTITY_MAP, {}) or {})
+    count = int(data.get(CONF_LIGHT_STAND_COUNT, CONTROLLER_LIGHT_STANDS) or 0)
+    if "lights" in emap:
+        emap["lights"] = _trim_lights(
+            None,
+            emap.get("lights"),
+            count,
+            data.get(CONF_CONTROLLER_DEVICE_ID),
+        )
     caps = legacy_entity_map_to_capabilities(
-        data.get(CONF_ENTITY_MAP, {}),
+        emap,
         preset_id=data.get(CONF_HARDWARE_PROFILE),
         ml_per_min=ml,
         simulation=bool(data.get(CONF_SIMULATION, False)),

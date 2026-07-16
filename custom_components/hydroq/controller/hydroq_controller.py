@@ -300,6 +300,7 @@ class HydroQController:
         events += self._maybe_create_repairs(safety)
 
         # Mid-process safety: abort busy work when actuators not allowed (e-stop / empty).
+        # Empty tank stops pumps only — lights stay under lighting manager (not water-gated).
         if not safety.actuators_allowed:
             reason = safety.reason or "safety"
             if self._balance_task and not self._balance_task.done():
@@ -324,8 +325,11 @@ class HydroQController:
                         process="dosing",
                     )
                 )
-            await self.device.stop_all_actuators()
-            events += await self.lighting.tick_auto(now, safety.estop_active)
+            await self.device.stop_all_actuators(include_lights=False)
+            if safety.estop_active:
+                events += await self.lighting.set_all(False, stagger_s=0.0)
+            else:
+                events += await self.lighting.tick_auto(now, estop=False)
             return events
 
         if self.system_mode == "Maintenance":

@@ -70,13 +70,14 @@ views:
               grid_options:
                 columns: full
           - type: markdown
-            content: >
-              <div style="text-align:center;margin:0.15rem 0 0.35rem;">
+            content: |
+              <div style="width:100%;display:flex;justify-content:center;align-items:center;margin:0.35rem 0 0.5rem;">
               <img src="/hydroq/logo.png" alt="HydroQ"
-              style="max-width:140px;width:36%;height:auto;" />
+              style="display:block;margin:0 auto;max-width:160px;width:42%;height:auto;" />
               </div>
             grid_options:
               columns: full
+              rows: 2
 
       - type: grid
         column_span: 4
@@ -775,8 +776,6 @@ views:
             entity: __HQ.grow_lights__
             button_type: switch
             show_state: true
-            tap_action:
-              action: toggle
             grid_options:
               columns: full
           - type: custom:mushroom-entity-card

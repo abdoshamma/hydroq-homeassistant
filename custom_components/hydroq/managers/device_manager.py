@@ -77,10 +77,12 @@ class DeviceManager:
             reason=reason,
         )
 
-    async def stop_all_actuators(self) -> None:
+    async def stop_all_actuators(self, *, include_lights: bool = True) -> None:
+        """Park pumps/irrigation. Lights only when include_lights (e-stop / cold start)."""
         for role in list(self.hal.capabilities.actuators.keys()):
             if role == ChannelRole.LIGHTING.value:
-                await self.hal.set_group(role, False)
+                if include_lights:
+                    await self.hal.set_group(role, False, stagger_s=0.0)
             else:
                 await self.hal.set_output(role, 0)
 

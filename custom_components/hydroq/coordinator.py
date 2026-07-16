@@ -17,10 +17,12 @@ from .const import (
     CONF_HARDWARE_PROFILE,
     CONF_IRRIGATION_SCHEDULE,
     CONF_LAST_CALIBRATION,
+    CONF_LIGHT_STAND_COUNT,
     CONF_MAX_DOSE_ML_DAY,
     CONF_PUMP_ML_PER_MIN,
     CONF_SIMULATION,
     CONF_ZONE_NAME,
+    CONTROLLER_LIGHT_STANDS,
     DEFAULT_MAX_DOSE_ML_DAY,
     DOMAIN,
     UPDATE_INTERVAL_S,
@@ -38,13 +40,26 @@ _LOGGER = logging.getLogger(__name__)
 def build_capabilities(entry: ConfigEntry) -> CapabilityMap:
     data = entry.data
     if CONF_CAPABILITIES in data:
-        return CapabilityMap.from_dict(data[CONF_CAPABILITIES])
-    return legacy_entity_map_to_capabilities(
-        data.get(CONF_ENTITY_MAP, {}),
-        preset_id=data.get(CONF_HARDWARE_PROFILE),
-        ml_per_min=float(data.get(CONF_PUMP_ML_PER_MIN, 50)),
-        simulation=bool(data.get(CONF_SIMULATION, False)),
-    )
+        caps = CapabilityMap.from_dict(data[CONF_CAPABILITIES])
+    else:
+        caps = legacy_entity_map_to_capabilities(
+            data.get(CONF_ENTITY_MAP, {}),
+            preset_id=data.get(CONF_HARDWARE_PROFILE),
+            ml_per_min=float(data.get(CONF_PUMP_ML_PER_MIN, 50)),
+            simulation=bool(data.get(CONF_SIMULATION, False)),
+        )
+    # Enforce kit size from setup (capabilities may still list extras).
+    count = int(data.get(CONF_LIGHT_STAND_COUNT, CONTROLLER_LIGHT_STANDS) or 0)
+    light = caps.actuators.get(ChannelRole.LIGHTING.value)
+    if light is not None:
+        ids = list(light.entity_ids or [])
+        if light.entity_id:
+            ids.insert(0, light.entity_id)
+            light.entity_id = None
+        light.entity_ids = ids[:count] if count > 0 else []
+        if not light.entity_ids:
+            caps.actuators.pop(ChannelRole.LIGHTING.value, None)
+    return caps
 
 
 class HydroQCoordinator(DataUpdateCoordinator[dict[str, Any]]):
