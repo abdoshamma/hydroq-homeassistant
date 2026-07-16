@@ -2,7 +2,7 @@
 # Placeholders resolved at install: __HQ.<key>__  __HAL.<role>__  __HAL.light_N__
 # Requires HACS: Mushroom, Bubble Card, Mini Graph Card, Vertical Stack In Card.
 #
-# Navigation: Overview · Water · Irrigation · Lights · Grow · Alarms · Service · System
+# Navigation: Overview · Water · Irrigation · Lights · Grow · Alarms · Service · System · Info
 # Multi-zone: Zones tab prepended automatically when 2+ HydroQ entries exist.
 views:
   # ─── 1. OVERVIEW ───────────────────────────────────────────────────────────
@@ -1737,3 +1737,172 @@ views:
               fill: fade
               average: true
               state: true
+
+  # ─── 9. INFO (customer guide) ──────────────────────────────────────────────
+  - type: sections
+    max_columns: 4
+    title: Info
+    path: info
+    icon: mdi:information-outline
+    sections:
+      - type: grid
+        column_span: 4
+        cards:
+          - type: heading
+            heading: HydroQ guide
+            heading_style: title
+            icon: mdi:book-open-page-variant
+          - type: markdown
+            content: |
+              **Welcome.** Short guide to every main control — what it does, how to use it, and why it exists.
+
+              - **Daily work:** Overview → Water / Irrigation / Lights
+              - **Problems:** Alarms
+              - **Recipes & schedule:** Grow
+              - **Technicians only:** Service & System
+            grid_options:
+              columns: full
+
+      - type: grid
+        column_span: 4
+        cards:
+          - type: heading
+            heading: Overview
+            heading_style: title
+            icon: mdi:view-dashboard
+          - type: markdown
+            content: |
+              - **Status / Health** — zone OK at a glance. Read only.
+              - **Water OK** — tank has water. Pumps stay blocked when empty.
+              - **Alarm** — something needs action. Tap banner → Alarms.
+              - **Stage / Mode** — change on **Grow**. Stage = crop recipe; Mode = how much auto is allowed.
+              - **pH · TDS · Temp · EC · DO · CO₂** — live sensors. Watch here; adjust on Water.
+              - **Grow lights** — master on/off without opening Lights.
+              - **Auto irrigation** — follow the Grow schedule hands-free.
+              - **Start / Stop irrigation** — water now, or end a run early.
+              - **Balance system** — one confirmed run for pH + nutrients together.
+              - **Emergency stop** — cut all actuators. Emergencies only.
+              - **Last event / error** — what just happened.
+            grid_options:
+              columns: full
+
+      - type: grid
+        column_span: 4
+        cards:
+          - type: heading
+            heading: Water (pH & nutrients)
+            heading_style: title
+            icon: mdi:water-opacity
+          - type: markdown
+            content: |
+              - **Auto pH / Auto EC** — hold targets automatically (probes must be calibrated).
+              - **Target pH / Target TDS** — the “good” values for this crop.
+              - **Tolerance** — band around the target. Wider = fewer tiny doses; tighter = stricter.
+              - **Dose (pH)** — start a pH correction toward target.
+              - **Nutrients / Lower TDS** — add A/B/C or reduce strength when TDS is high.
+              - **Balance** — safest one-shot pH + EC correction. Prefer this over raw pumps.
+              - **Stop dosing** — abort a dose in progress.
+              - **Request refill** — flag the tank for staff when low/empty.
+              - **pH Up/Down · Pump A/B/C** — direct hardware. Prefer Dose / Nutrients / Balance unless trained.
+            grid_options:
+              columns: full
+
+      - type: grid
+        column_span: 4
+        cards:
+          - type: heading
+            heading: Irrigation
+            heading_style: title
+            icon: mdi:water-pump
+          - type: markdown
+            content: |
+              - **Auto irrigation** — run the Grow schedule. Leave on for normal days.
+              - **Start / Stop** — manual cycle, or stop early.
+              - **E-Stop** — same emergency cut as Overview.
+              - **Running / State** — idle vs irrigating vs fault. Read only.
+              - **Water present** — must be OK or the pump will not run (dry-run protect).
+              - **Manual pump (Advanced)** — bypass HydroQ. Technician only; can fight Auto.
+            grid_options:
+              columns: full
+
+      - type: grid
+        column_span: 4
+        cards:
+          - type: heading
+            heading: Lights & Grow
+            heading_style: title
+            icon: mdi:lightbulb-group
+          - type: markdown
+            content: |
+              **Lights**
+              - **All grow lights** — master switch for the zone.
+              - **Auto lighting** — photoperiod from recipe / schedule.
+              - **Stands 1–20** — turn one aisle without changing all.
+
+              **Grow**
+              - **Growth stage** — loads recommended setpoints & defaults for that crop phase.
+              - **System mode** — Manual · Semi-Auto · Full-Auto · Maintenance.
+              - **Auto Irrigation / Lighting / pH / EC** — enable only the loops you trust.
+              - **Schedule events 1–5** — enable, set start time & minutes for daily irrigation.
+            grid_options:
+              columns: full
+
+      - type: grid
+        column_span: 4
+        cards:
+          - type: heading
+            heading: Alarms & safety
+            heading_style: title
+            icon: mdi:alarm-light
+          - type: markdown
+            content: |
+              - **HydroQ alarm** — person needed. Open this page and read Last error.
+              - **Water OK / Level** — refill if off. Empty tank stops irrigate & dose.
+              - **Hardware e-stop** — latched on the device. Clear there after the cause is fixed.
+              - **Emergency stop** — cut everything now.
+              - **Stop irrigation / dosing** — halt one process (softer than full e-stop).
+              - **Request refill** — mark that staff were asked to refill.
+              - **Last event / error** — decide next step without guessing.
+
+              Typical causes: empty tank, e-stop latched, sensor fault, aborted dose/irrigate.
+            grid_options:
+              columns: full
+
+      - type: grid
+        column_span: 4
+        cards:
+          - type: heading
+            heading: Service & System
+            heading_style: title
+            icon: mdi:wrench-clock
+          - type: markdown
+            content: |
+              **Service (technicians)**
+              - **Cal pH neutral / acid** — buffer solutions → press when reading is stable.
+              - **Cal EC / DO** — standard solution or air cal → press when stable.
+              - **Last cal dates** — know when probes need service again.
+              - **Pump tests (10 s)** — confirm, then watch the line. Checks wiring & flow.
+
+              **System**
+              Diagnostics, simulation flag, hardware tiles, and 7-day graphs for installers/admins.
+              Daily operators stay on Overview / Water / Irrigation / Lights.
+            grid_options:
+              columns: full
+
+      - type: grid
+        column_span: 4
+        cards:
+          - type: heading
+            heading: Good habits
+            heading_style: title
+            icon: mdi:check-decagram
+          - type: markdown
+            content: |
+              1. Start each shift on **Overview** — Status, Water OK, Alarm.
+              2. Prefer **Balance** and **Auto** over raw pump tiles.
+              3. Use **Emergency stop** only for real emergencies; clear hardware e-stop after.
+              4. Keep probes calibrated on **Service** — bad sensors → bad doses.
+              5. Change crop targets via **Grow** stage, not by guessing on Water every day.
+              6. After an update, run **hydroq.create_dashboard** if this Info tab is missing.
+            grid_options:
+              columns: full
