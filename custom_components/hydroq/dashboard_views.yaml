@@ -90,99 +90,249 @@ views:
 
       - type: grid
         column_span: 4
-        grid_options:
-          columns: 3
-          rows: 2
         cards:
           - type: heading
             heading: Live readings
             heading_style: title
             icon: mdi:gauge
-          - type: custom:mushroom-template-card
-            primary: >-
-              {% set s = states('__HAL.ph__') %}
-              {{ (s | float | round(2)) ~ ' pH' if is_number(s) else 'pH —' }}
-            secondary: >-
-              {% set v = states('__HAL.ph__') | float(-99) %}
-              {% if v < -50 %}—{% elif 5.8 <= v <= 6.5 %}Safe 5.8–6.5
-              {% elif v < 5.5 %}Too low
-              {% elif v < 5.8 %}Low
-              {% elif v <= 6.8 %}High
-              {% else %}Too high
-              {% endif %}
-            icon: mdi:ph
-            icon_color: >-
-              {% set v = states('__HAL.ph__') | float(-99) %}
-              {% if v < -50 %}disabled
-              {% elif 5.8 <= v <= 6.5 %}green
-              {% elif 5.5 <= v < 5.8 or 6.5 < v <= 6.8 %}amber
-              {% else %}red
-              {% endif %}
-            layout: vertical
-            fill_container: true
+          - type: custom:flex-horseshoe-card
+            entities:
+              - entity: __HAL.ph__
+                decimals: 2
+                unit: pH
+                name: pH
+                area: Target 5.8–6.5
+            show:
+              horseshoe_style: colorstopgradient
+            layout:
+              states:
+                - id: 0
+                  entity_index: 0
+                  xpos: 50
+                  ypos: 58
+                  styles:
+                    - font-size: 2.6em;
+              names:
+                - id: 0
+                  entity_index: 0
+                  xpos: 50
+                  ypos: 92
+                  styles:
+                    - font-size: 1.1em;
+              areas:
+                - id: 0
+                  entity_index: 0
+                  xpos: 50
+                  ypos: 28
+                  styles:
+                    - font-size: 0.95em;
+                    - opacity: 0.75;
+            horseshoe_scale:
+              min: 4
+              max: 9
+              width: 6
+            horseshoe_state:
+              width: 12
+            color_stops:
+              "4.0": "#c0392b"
+              "5.5": "#d4a017"
+              "5.8": "#27ae60"
+              "6.5": "#27ae60"
+              "6.8": "#d4a017"
+              "8.0": "#c0392b"
             tap_action:
               action: navigate
               navigation_path: /hydroq/water
-          - type: custom:mushroom-template-card
-            primary: >-
-              {% set ec = states('__HQ.live_ec__') %}
-              {% set ppm = states('__HQ.live_tds__') %}
-              {% if is_number(ec) and is_number(ppm) %}
-              {{ ec | float | round(2) }} mS/cm · {{ ppm | float | round(0) }} ppm
-              {% else %}EC/TDS —{% endif %}
-            secondary: >-
-              {% set v = states('__HQ.live_ec__') | float(-99) %}
-              {% if v < -50 %}—{% elif 0.8 <= v <= 1.8 %}Safe 0.8–1.8
-              {% elif v < 0.5 %}Too low
-              {% elif v < 0.8 %}Low
-              {% elif v <= 2.4 %}High
-              {% else %}Too high
-              {% endif %}
-            icon: mdi:sprout-outline
-            icon_color: >-
-              {% set v = states('__HQ.live_ec__') | float(-99) %}
-              {% if v < -50 %}disabled
-              {% elif 0.8 <= v <= 1.8 %}green
-              {% elif 0.5 <= v < 0.8 or 1.8 < v <= 2.4 %}amber
-              {% else %}red
-              {% endif %}
-            layout: vertical
-            fill_container: true
+            grid_options:
+              columns: 6
+              rows: 4
+          - type: custom:flex-horseshoe-card
+            entities:
+              - entity: __HAL.tds__
+                decimals: 0
+                unit: ppm
+                name: TDS
+                area: Leafy ~400–900
+              - entity: __HQ.live_ec__
+                decimals: 2
+                unit: mS/cm
+                name: EC
+                icon: mdi:flash
+            show:
+              horseshoe_style: colorstopgradient
+            layout:
+              hlines:
+                - id: 0
+                  xpos: 50
+                  ypos: 46
+                  length: 42
+                  styles:
+                    - stroke: var(--divider-color);
+                    - stroke-width: 4;
+                    - stroke-linecap: round;
+                    - opacity: 0.7;
+              states:
+                - id: 0
+                  entity_index: 0
+                  xpos: 50
+                  ypos: 36
+                  styles:
+                    - font-size: 2.2em;
+                - id: 1
+                  entity_index: 1
+                  xpos: 50
+                  ypos: 62
+                  styles:
+                    - font-size: 1.35em;
+              icons:
+                - id: 0
+                  entity_index: 1
+                  xpos: 28
+                  ypos: 62
+                  align: end
+                  size: 1.2
+              names:
+                - id: 0
+                  entity_index: 0
+                  xpos: 50
+                  ypos: 92
+                  styles:
+                    - font-size: 1.1em;
+              areas:
+                - id: 0
+                  entity_index: 0
+                  xpos: 50
+                  ypos: 22
+                  styles:
+                    - font-size: 0.9em;
+                    - opacity: 0.75;
+            horseshoe_scale:
+              min: 0
+              max: 1200
+              width: 6
+            horseshoe_state:
+              width: 12
+            color_stops:
+              "0": "#c0392b"
+              "250": "#d4a017"
+              "400": "#27ae60"
+              "900": "#27ae60"
+              "1100": "#d4a017"
+              "1200": "#c0392b"
             tap_action:
               action: navigate
               navigation_path: /hydroq/water
-          - type: custom:mushroom-template-card
-            primary: >-
-              {% set s = states('__HAL.water_temp__') %}
-              {{ (s | float | round(1)) ~ ' °C' if is_number(s) else 'Temp —' }}
-            secondary: >-
-              {% set v = states('__HAL.water_temp__') | float(-99) %}
-              {% if v < -50 %}—{% elif 18 <= v <= 26 %}Safe 18–26 °C
-              {% elif v < 18 %}Cool
-              {% else %}Warm
-              {% endif %}
-            icon: mdi:thermometer-water
-            icon_color: >-
-              {% set v = states('__HAL.water_temp__') | float(-99) %}
-              {% if v < -50 %}disabled
-              {% elif 18 <= v <= 26 %}green
-              {% elif 16 <= v < 18 or 26 < v <= 28 %}amber
-              {% else %}red
-              {% endif %}
-            layout: vertical
-            fill_container: true
-          - type: tile
-            entity: __HAL.do__
-            name: Dissolved O₂
-            icon: mdi:water-opacity
+            grid_options:
+              columns: 6
+              rows: 4
+          - type: custom:flex-horseshoe-card
+            entities:
+              - entity: __HAL.water_temp__
+                decimals: 1
+                unit: "°C"
+                name: Water
+                area: Safe 18–26
+            show:
+              horseshoe_style: colorstopgradient
+            layout:
+              states:
+                - id: 0
+                  entity_index: 0
+                  xpos: 50
+                  ypos: 58
+                  styles:
+                    - font-size: 2.6em;
+              names:
+                - id: 0
+                  entity_index: 0
+                  xpos: 50
+                  ypos: 92
+                  styles:
+                    - font-size: 1.1em;
+              areas:
+                - id: 0
+                  entity_index: 0
+                  xpos: 50
+                  ypos: 28
+                  styles:
+                    - font-size: 0.95em;
+                    - opacity: 0.75;
+            horseshoe_scale:
+              min: 10
+              max: 35
+              width: 6
+            horseshoe_state:
+              width: 12
+            color_stops:
+              "10": "#2980b9"
+              "16": "#d4a017"
+              "18": "#27ae60"
+              "26": "#27ae60"
+              "28": "#d4a017"
+              "35": "#c0392b"
+            grid_options:
+              columns: 6
+              rows: 4
+          - type: custom:flex-horseshoe-card
+            entities:
+              - entity: __HAL.do__
+                decimals: 1
+                unit: mg/L
+                name: Dissolved O₂
+                area: Typical 6–10
+            show:
+              horseshoe_style: colorstopgradient
+            layout:
+              states:
+                - id: 0
+                  entity_index: 0
+                  xpos: 50
+                  ypos: 58
+                  styles:
+                    - font-size: 2.6em;
+              names:
+                - id: 0
+                  entity_index: 0
+                  xpos: 50
+                  ypos: 92
+                  styles:
+                    - font-size: 1.1em;
+              areas:
+                - id: 0
+                  entity_index: 0
+                  xpos: 50
+                  ypos: 28
+                  styles:
+                    - font-size: 0.95em;
+                    - opacity: 0.75;
+            horseshoe_scale:
+              min: 0
+              max: 14
+              width: 6
+            horseshoe_state:
+              width: 12
+            color_stops:
+              "0": "#c0392b"
+              "4": "#d4a017"
+              "6": "#27ae60"
+              "10": "#27ae60"
+              "12": "#d4a017"
+              "14": "#2980b9"
+            grid_options:
+              columns: 6
+              rows: 4
           - type: tile
             entity: __HAL.co2__
             name: Air CO₂
             icon: mdi:molecule-co2
+            grid_options:
+              columns: 6
           - type: tile
             entity: __HQ.tds_factor__
             name: TDS scale
             icon: mdi:scale-balance
+            grid_options:
+              columns: 6
 
       - type: grid
         column_span: 4

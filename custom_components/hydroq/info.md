@@ -14,6 +14,7 @@ Commercial hydroponic zone control for Home Assistant + ESPHome.
 | Bubble Card | `Bubble Card` |
 | Mini Graph Card | `mini-graph-card` |
 | Vertical Stack In Card | `Vertical Stack In Card` |
+| Flexible Horseshoe Card | `flex-horseshoe-card` |
 
 ## Features
 

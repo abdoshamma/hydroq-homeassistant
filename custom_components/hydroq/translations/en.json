@@ -51,7 +51,7 @@
       },
       "frontend": {
         "title": "Lovelace cards (HACS)",
-        "description": "The HydroQ operator dashboard needs these frontend cards from HACS before use:\n\n• Mushroom Cards\n• Bubble Card\n• Mini Graph Card\n• Vertical Stack In Card\n\nInstall them in HACS → Frontend, then reload the browser. HydroQ cannot install cards automatically.",
+        "description": "The HydroQ operator dashboard needs these frontend cards from HACS before use:\n\n• Mushroom Cards\n• Bubble Card\n• Mini Graph Card\n• Vertical Stack In Card\n• Flexible Horseshoe Card (flex-horseshoe-card)\n\nInstall them in HACS → Frontend, then reload the browser. HydroQ cannot install cards automatically.",
         "data": {
           "cards_installed": "I installed the required Lovelace cards via HACS"
         }

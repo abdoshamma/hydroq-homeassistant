@@ -189,7 +189,7 @@ async def _async_ensure_dashboard(hass: HomeAssistant) -> None:
         _LOGGER.warning(
             "Could not auto-create HydroQ dashboard. "
             "Install required HACS cards (Mushroom, Bubble, Mini Graph, "
-            "Vertical Stack In Card), then call hydroq.create_dashboard."
+            "Vertical Stack In Card, Flexible Horseshoe Card), then call hydroq.create_dashboard."
         )
 
 
