@@ -52,6 +52,21 @@ from .models.capability import legacy_entity_map_to_capabilities
 from .models.runtime import ScheduleSlot, normalize_schedule
 
 
+def _hm_to_time(hour: int, minute: int) -> str:
+    """HA TimeSelector value (HH:MM:SS)."""
+    return f"{int(hour):02d}:{int(minute):02d}:00"
+
+
+def _time_to_hm(value: Any) -> tuple[int, int]:
+    """Parse TimeSelector / HH:MM[:SS] into (hour, minute)."""
+    if hasattr(value, "hour") and hasattr(value, "minute"):
+        return int(value.hour), int(value.minute)
+    parts = str(value or "0:0").strip().split(":")
+    hour = int(parts[0]) if parts and parts[0] != "" else 0
+    minute = int(parts[1]) if len(parts) > 1 and parts[1] != "" else 0
+    return max(0, min(23, hour)), max(0, min(59, minute))
+
+
 def _trim_lights(
     hass: HomeAssistant | None,
     lights: list[str] | None,
@@ -607,10 +622,14 @@ class HydroQOptionsFlow(config_entries.OptionsFlow):
         existing = self._recipe_draft.get("recipes", {}).get(stage) or {}
 
         if user_input is not None:
+            lon = _time_to_hm(user_input["lights_on"])
+            loff = _time_to_hm(user_input["lights_off"])
+            irr1 = _time_to_hm(user_input["irr1_time"])
+            irr2 = _time_to_hm(user_input["irr2_time"])
             recipe = Recipe(
                 stage=stage,
-                light_on=(int(user_input["on_hour"]), int(user_input["on_minute"])),
-                light_off=(int(user_input["off_hour"]), int(user_input["off_minute"])),
+                light_on=lon,
+                light_off=loff,
                 desired_ph=float(user_input["desired_ph"]),
                 desired_ec=float(user_input["desired_ec"]),
                 ph_tolerance=float(user_input["ph_tolerance"]),
@@ -621,15 +640,15 @@ class HydroQOptionsFlow(config_entries.OptionsFlow):
                         [
                             ScheduleSlot(
                                 True,
-                                int(user_input["irr1_hour"]),
-                                int(user_input["irr1_minute"]),
-                                int(user_input["irr1_min"]),
+                                irr1[0],
+                                irr1[1],
+                                int(user_input["irr1_duration"]),
                             ).as_dict(),
                             ScheduleSlot(
                                 bool(user_input.get("irr2_enabled")),
-                                int(user_input["irr2_hour"]),
-                                int(user_input["irr2_minute"]),
-                                int(user_input["irr2_min"]),
+                                irr2[0],
+                                irr2[1],
+                                int(user_input["irr2_duration"]),
                             ).as_dict(),
                             ScheduleSlot(False, 0, 0, 5).as_dict(),
                             ScheduleSlot(False, 0, 0, 5).as_dict(),
@@ -648,6 +667,16 @@ class HydroQOptionsFlow(config_entries.OptionsFlow):
         lon = existing.get("light_on") or [6, 0]
         loff = existing.get("light_off") or [22, 0]
         sched = normalize_schedule(existing.get("schedule"))
+        time_sel = selector.TimeSelector()
+        mins_sel = selector.NumberSelector(
+            selector.NumberSelectorConfig(
+                min=1,
+                max=120,
+                step=1,
+                mode=selector.NumberSelectorMode.BOX,
+                unit_of_measurement="min",
+            )
+        )
         schema = vol.Schema(
             {
                 vol.Required(
@@ -666,37 +695,27 @@ class HydroQOptionsFlow(config_entries.OptionsFlow):
                     "duration_days",
                     default=int(existing.get("duration_days", 14 if idx < len(stages) - 1 else 0)),
                 ): vol.All(vol.Coerce(int), vol.Range(min=0, max=365)),
-                vol.Required("on_hour", default=int(lon[0])): vol.All(
-                    vol.Coerce(int), vol.Range(min=0, max=23)
-                ),
-                vol.Required("on_minute", default=int(lon[1])): vol.All(
-                    vol.Coerce(int), vol.Range(min=0, max=59)
-                ),
-                vol.Required("off_hour", default=int(loff[0])): vol.All(
-                    vol.Coerce(int), vol.Range(min=0, max=23)
-                ),
-                vol.Required("off_minute", default=int(loff[1])): vol.All(
-                    vol.Coerce(int), vol.Range(min=0, max=59)
-                ),
-                vol.Required("irr1_hour", default=sched[0].hour): vol.All(
-                    vol.Coerce(int), vol.Range(min=0, max=23)
-                ),
-                vol.Required("irr1_minute", default=sched[0].minute): vol.All(
-                    vol.Coerce(int), vol.Range(min=0, max=59)
-                ),
-                vol.Required("irr1_min", default=sched[0].duration_min): vol.All(
-                    vol.Coerce(int), vol.Range(min=1, max=120)
-                ),
-                vol.Required("irr2_enabled", default=sched[1].enabled): bool,
-                vol.Required("irr2_hour", default=sched[1].hour or 20): vol.All(
-                    vol.Coerce(int), vol.Range(min=0, max=23)
-                ),
-                vol.Required("irr2_minute", default=sched[1].minute): vol.All(
-                    vol.Coerce(int), vol.Range(min=0, max=59)
-                ),
-                vol.Required("irr2_min", default=sched[1].duration_min or 5): vol.All(
-                    vol.Coerce(int), vol.Range(min=1, max=120)
-                ),
+                vol.Required(
+                    "lights_on", default=_hm_to_time(int(lon[0]), int(lon[1]))
+                ): time_sel,
+                vol.Required(
+                    "lights_off", default=_hm_to_time(int(loff[0]), int(loff[1]))
+                ): time_sel,
+                vol.Required(
+                    "irr1_time",
+                    default=_hm_to_time(sched[0].hour, sched[0].minute),
+                ): time_sel,
+                vol.Required(
+                    "irr1_duration", default=int(sched[0].duration_min)
+                ): mins_sel,
+                vol.Required("irr2_enabled", default=bool(sched[1].enabled)): bool,
+                vol.Required(
+                    "irr2_time",
+                    default=_hm_to_time(sched[1].hour or 20, sched[1].minute),
+                ): time_sel,
+                vol.Required(
+                    "irr2_duration", default=int(sched[1].duration_min or 5)
+                ): mins_sel,
             }
         )
         return self.async_show_form(

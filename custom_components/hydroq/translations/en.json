@@ -131,24 +131,20 @@
       },
       "recipe_stage": {
         "title": "{plant}: {stage} ({index}/{total})",
-        "description": "EC is in mS/cm. Duration 0 on the last stage means stay there (no auto advance).",
+        "description": "Set targets, then lights and irrigation times. EC is mS/cm. Stage days 0 on the last stage = stay there.",
         "data": {
           "desired_ph": "Target pH",
-          "ph_tolerance": "pH tolerance",
+          "ph_tolerance": "pH tolerance (±)",
           "desired_ec": "Target EC (mS/cm)",
-          "ec_tolerance": "EC tolerance (mS/cm)",
-          "duration_days": "Days in this stage (0 = final)",
-          "on_hour": "Lights ON — hour",
-          "on_minute": "Lights ON — minute",
-          "off_hour": "Lights OFF — hour",
-          "off_minute": "Lights OFF — minute",
-          "irr1_hour": "Irrigation 1 — hour",
-          "irr1_minute": "Irrigation 1 — minute",
-          "irr1_min": "Irrigation 1 — run minutes",
-          "irr2_enabled": "Enable second irrigation",
-          "irr2_hour": "Irrigation 2 — hour",
-          "irr2_minute": "Irrigation 2 — minute",
-          "irr2_min": "Irrigation 2 — run minutes"
+          "ec_tolerance": "EC tolerance (± mS/cm)",
+          "duration_days": "Days in this stage (0 = final / no auto-advance)",
+          "lights_on": "Lights turn ON at",
+          "lights_off": "Lights turn OFF at",
+          "irr1_time": "1st irrigation starts at",
+          "irr1_duration": "1st irrigation runs for",
+          "irr2_enabled": "Add a 2nd irrigation today",
+          "irr2_time": "2nd irrigation starts at",
+          "irr2_duration": "2nd irrigation runs for"
         }
       },
       "recipe_save": {
