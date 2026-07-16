@@ -383,8 +383,6 @@ views:
             tap_action:
               action: call-service
               service: button.press
-              confirmation:
-                text: Run pH then TDS balance?
               target:
                 entity_id: __HQ.start_balance__
           - type: custom:mushroom-entity-card
@@ -396,8 +394,6 @@ views:
             tap_action:
               action: call-service
               service: button.press
-              confirmation:
-                text: Stop all actuators now?
               target:
                 entity_id: __HQ.emergency_stop__
 
@@ -611,8 +607,6 @@ views:
                     tap_action:
                       action: call-service
                       service: button.press
-                      confirmation:
-                        text: Start pH dosing?
                       target:
                         entity_id: __HQ.start_ph__
               - type: custom:bubble-card
@@ -692,8 +686,6 @@ views:
                     tap_action:
                       action: call-service
                       service: button.press
-                      confirmation:
-                        text: Dose nutrients A/B toward target?
                       target:
                         entity_id: __HQ.start_nutrients__
                   - entity: __HQ.start_neutralize__
@@ -703,8 +695,6 @@ views:
                     tap_action:
                       action: call-service
                       service: button.press
-                      confirmation:
-                        text: Run neutralize (lower TDS)?
                       target:
                         entity_id: __HQ.start_neutralize__
               - type: custom:bubble-card
@@ -751,8 +741,6 @@ views:
             tap_action:
               action: call-service
               service: button.press
-              confirmation:
-                text: Balance pH then TDS?
               target:
                 entity_id: __HQ.start_balance__
           - type: custom:mushroom-entity-card
@@ -901,8 +889,6 @@ views:
             tap_action:
               action: call-service
               service: button.press
-              confirmation:
-                text: Emergency stop all actuators?
               target:
                 entity_id: __HQ.emergency_stop__
 
@@ -1227,8 +1213,6 @@ views:
             tap_action:
               action: call-service
               service: button.press
-              confirmation:
-                text: Start crop today? Sets sow date, first stage, and enables Auto Stage.
               target:
                 entity_id: __HQ.start_crop__
           - type: custom:mushroom-entity-card
@@ -1527,8 +1511,6 @@ views:
             tap_action:
               action: call-service
               service: button.press
-              confirmation:
-                text: Stop all actuators?
               target:
                 entity_id: __HQ.emergency_stop__
           - type: custom:mushroom-entity-card
@@ -1633,8 +1615,6 @@ views:
                 tap_action:
                   action: call-service
                   service: button.press
-                  confirmation:
-                    text: Probe in neutral buffer?
                   target:
                     entity_id: __HQ.cal_ph_neutral__
               - type: custom:mushroom-template-card
@@ -1645,8 +1625,6 @@ views:
                 tap_action:
                   action: call-service
                   service: button.press
-                  confirmation:
-                    text: Probe in acid buffer?
                   target:
                     entity_id: __HQ.cal_ph_acid__
               - type: custom:mushroom-entity-card
@@ -1670,8 +1648,6 @@ views:
                 tap_action:
                   action: call-service
                   service: button.press
-                  confirmation:
-                    text: Probe in 707 ppm (1413 µS/cm) solution near 25°C?
                   target:
                     entity_id: __HQ.cal_ec__
               - type: custom:mushroom-entity-card
@@ -1681,6 +1657,18 @@ views:
           - type: custom:vertical-stack-in-card
             title: Dissolved oxygen
             cards:
+              - type: custom:mushroom-entity-card
+                entity: __HAL.do__
+                name: Live DO
+                icon: mdi:gas-cylinder
+                primary_info: name
+                secondary_info: state
+              - type: custom:mushroom-entity-card
+                entity: __HAL.do_raw__
+                name: DO probe (V)
+                icon: mdi:flash
+                primary_info: name
+                secondary_info: state
               - type: custom:mushroom-template-card
                 primary: Air calibration
                 icon: mdi:air-filter
@@ -1689,8 +1677,6 @@ views:
                 tap_action:
                   action: call-service
                   service: button.press
-                  confirmation:
-                    text: Probe clean and in air?
                   target:
                     entity_id: __HQ.cal_do__
               - type: custom:mushroom-entity-card
@@ -1721,8 +1707,6 @@ views:
                 tap_action:
                   action: call-service
                   service: button.press
-                  confirmation:
-                    text: Run pump A for 10 seconds?
                   target:
                     entity_id: __HQ.test_pump_a__
               - type: custom:mushroom-entity-card
@@ -1732,8 +1716,6 @@ views:
                 tap_action:
                   action: call-service
                   service: button.press
-                  confirmation:
-                    text: Run pump B for 10 seconds?
                   target:
                     entity_id: __HQ.test_pump_b__
               - type: custom:mushroom-entity-card
@@ -1743,8 +1725,6 @@ views:
                 tap_action:
                   action: call-service
                   service: button.press
-                  confirmation:
-                    text: Run pump C for 10 seconds?
                   target:
                     entity_id: __HQ.test_pump_c__
               - type: custom:mushroom-entity-card
@@ -1754,8 +1734,6 @@ views:
                 tap_action:
                   action: call-service
                   service: button.press
-                  confirmation:
-                    text: Run pH pump for 10 seconds?
                   target:
                     entity_id: __HQ.test_ph_pump__
               - type: custom:mushroom-entity-card
@@ -1765,8 +1743,6 @@ views:
                 tap_action:
                   action: call-service
                   service: button.press
-                  confirmation:
-                    text: Run irrigation pump for 10 seconds?
                   target:
                     entity_id: __HQ.test_irrigation__
 

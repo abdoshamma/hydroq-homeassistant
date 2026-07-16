@@ -111,6 +111,7 @@ HAL_SENSOR_ROLES = (
     "tds",
     "ec",
     "do",
+    "do_raw",
     "water_temp",
     "water_level",
     "emergency_stop",

@@ -28,6 +28,7 @@ class SensorRole(StrEnum):
     TDS = "tds"
     EC = "ec"
     DO = "do"
+    DO_RAW = "do_raw"
     WATER_TEMP = "water_temp"
     WATER_LEVEL = "water_level"
     ESTOP = "emergency_stop"
@@ -142,6 +143,7 @@ _LEGACY_SENSOR = {
     "tds": SensorRole.TDS,
     "ec": SensorRole.EC,
     "do": SensorRole.DO,
+    "do_raw": SensorRole.DO_RAW,
     "water_temp": SensorRole.WATER_TEMP,
     "water_level": SensorRole.WATER_LEVEL,
     "emergency_stop": SensorRole.ESTOP,

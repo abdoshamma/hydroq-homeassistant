@@ -178,6 +178,9 @@ class HydroQConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             emap = {
                 "ph": user_input.get("ph"),
                 "tds": user_input.get("tds"),
+                "ec": user_input.get("ec"),
+                "do": user_input.get("do"),
+                "do_raw": user_input.get("do_raw"),
                 "water_temp": user_input.get("water_temp"),
                 "water_level": user_input.get("water_level"),
                 "emergency_stop": user_input.get("emergency_stop"),
@@ -212,6 +215,9 @@ class HydroQConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         for key, sel in (
             ("ph", entity_sel),
             ("tds", entity_sel),
+            ("ec", entity_sel),
+            ("do", entity_sel),
+            ("do_raw", entity_sel),
             ("water_temp", entity_sel),
             ("water_level", entity_sel),
             ("emergency_stop", entity_sel),

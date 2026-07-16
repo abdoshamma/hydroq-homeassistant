@@ -24,6 +24,9 @@
         "data": {
           "ph": "pH sensor",
           "tds": "TDS sensor",
+          "ec": "EC sensor",
+          "do": "Dissolved oxygen (mg/L)",
+          "do_raw": "DO probe voltage (V)",
           "water_temp": "Water temperature",
           "water_level": "Water level",
           "emergency_stop": "Emergency stop",

@@ -14,6 +14,7 @@ from ..const import (
     EM_CAL_TDS,
     EM_CO2,
     EM_DO,
+    EM_DO_RAW,
     EM_EC,
     EM_ESTOP,
     EM_IRRIGATION,
@@ -35,7 +36,8 @@ _HINTS: dict[str, tuple[str, ...]] = {
     EM_PH: ("ph_value", "ph value", "_ph"),
     EM_TDS: ("tds_value", "tds value", "_tds"),
     EM_EC: ("ec_value", "ec value", "_ec"),
-    EM_DO: ("dissolved_oxygen", "do_value", "_do"),
+    EM_DO: ("dissolved_oxygen", "dissolved oxygen", "do_sensor", "do_value"),
+    EM_DO_RAW: ("do_raw", "do raw"),
     EM_WATER_TEMP: ("water_temperature", "water_temp"),
     EM_WATER_LEVEL: ("water_level",),
     EM_ESTOP: ("emergency_stop_active", "emergency_stop"),
@@ -136,6 +138,8 @@ def suggest_entity_map(
                 if ent.domain != domain:
                     continue
                 hay = f"{ent.entity_id} {ent.original_name or ''}".lower()
+                if role == EM_DO and "do_raw" in hay:
+                    continue
                 if role in (EM_PUMP_A, EM_PUMP_B, EM_PUMP_C, EM_PUMP_PH, EM_PUMP_NEUTRAL):
                     if domain == "number" and "control" in hay:
                         continue
@@ -157,6 +161,7 @@ def suggest_entity_map(
         (EM_TDS, ("sensor",)),
         (EM_EC, ("sensor",)),
         (EM_DO, ("sensor",)),
+        (EM_DO_RAW, ("sensor",)),
         (EM_WATER_TEMP, ("sensor",)),
         (EM_WATER_LEVEL, ("binary_sensor",)),
         (EM_ESTOP, ("binary_sensor",)),
