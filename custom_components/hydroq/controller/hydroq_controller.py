@@ -60,7 +60,7 @@ class HydroQController:
         self.diagnostics = DiagnosticsManager(hal, self.events)
         self.scheduler = SchedulerManager(hass)
 
-        self.system_mode = "Semi-Auto"
+        self.system_mode = "Manual"
         self.plant_id = "generic"
         self.growth_stage = "Vegetative"
         self.auto_stage = False
@@ -394,7 +394,8 @@ class HydroQController:
         ):
             self.dosing.fsm.reset_to_idle()
 
-        events += await self.lighting.tick_auto(now, safety.estop_active)
+        if self.system_mode in ("Semi-Auto", "Full-Auto"):
+            events += await self.lighting.tick_auto(now, safety.estop_active)
         events += self._tick_auto_stage(now)
 
         due = self.irrigation.schedule_due(now)

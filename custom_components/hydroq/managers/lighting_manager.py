@@ -18,7 +18,7 @@ STAGGER_S = 1.0
 class LightingManager:
     def __init__(self, hal: HardwareHAL) -> None:
         self.hal = hal
-        self.auto_enabled = True
+        self.auto_enabled = False
         self.on_hour = 6
         self.on_minute = 0
         self.off_hour = 22

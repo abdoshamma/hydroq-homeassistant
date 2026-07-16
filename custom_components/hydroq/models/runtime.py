@@ -53,7 +53,7 @@ class PublicSnapshot:
 
     status: str = "ready"
     health_score: int = 100
-    system_mode: str = "Semi-Auto"
+    system_mode: str = "Manual"
     plant_id: str = "generic"
     plant_label: str = "Generic"
     growth_stage: str = "Vegetative"
@@ -61,7 +61,7 @@ class PublicSnapshot:
     dosing_state: str = "IDLE"
     calibration_state: str = "IDLE"
     auto_irrigation: bool = False
-    auto_lighting: bool = True
+    auto_lighting: bool = False
     auto_ph: bool = False
     auto_ec: bool = False
     auto_stage: bool = False
