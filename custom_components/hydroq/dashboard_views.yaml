@@ -549,7 +549,8 @@ views:
           - type: custom:vertical-stack-in-card
             title: pH
             grid_options:
-              columns: 6
+              columns: full
+              rows: auto
             cards:
               - type: custom:mini-graph-card
                 entities:
@@ -633,7 +634,8 @@ views:
           - type: custom:vertical-stack-in-card
             title: EC / TDS
             grid_options:
-              columns: 6
+              columns: full
+              rows: auto
             cards:
               - type: custom:mini-graph-card
                 entities:
