@@ -95,42 +95,91 @@ views:
             heading: Live readings
             heading_style: title
             icon: mdi:gauge
-          - type: gauge
-            entity: __HAL.ph__
-            name: pH
-            min: 4
-            max: 8
-            needle: true
-            severity:
-              green: 5.8
-              yellow: 5.5
-              red: 4
-          - type: gauge
-            entity: __HAL.tds__
-            name: TDS
-            min: 0
-            max: 2000
-            needle: true
-            severity:
-              green: 400
-              yellow: 200
-              red: 0
-          - type: tile
-            entity: __HQ.live_ec__
-            name: EC
-            icon: mdi:flash
-          - type: tile
-            entity: __HQ.live_tds__
-            name: TDS
+          - type: custom:mushroom-template-card
+            primary: "{{ states('__HAL.ph__') }} pH"
+            secondary: >-
+              {% set v = states('__HAL.ph__') | float(-99) %}
+              {% if v < -50 %}No reading
+              {% elif 5.8 <= v <= 6.5 %}Safe · target 5.8–6.5
+              {% elif 5.5 <= v < 5.8 or 6.5 < v <= 6.8 %}Watch · target 5.8–6.5
+              {% else %}Out of range · target 5.8–6.5
+              {% endif %}
+            icon: mdi:ph
+            icon_color: >-
+              {% set v = states('__HAL.ph__') | float(-99) %}
+              {% if v < -50 %}disabled
+              {% elif 5.8 <= v <= 6.5 %}green
+              {% elif 5.5 <= v < 5.8 or 6.5 < v <= 6.8 %}amber
+              {% else %}red
+              {% endif %}
+            layout: vertical
+            tap_action:
+              action: navigate
+              navigation_path: /hydroq/water
+          - type: custom:mushroom-template-card
+            primary: "{{ states('__HQ.live_tds__') }} ppm"
+            secondary: >-
+              {% set v = states('__HQ.live_tds__') | float(-99) %}
+              {% if v < -50 %}No reading
+              {% elif 400 <= v <= 900 %}Safe · leafy ~400–900 ppm
+              {% elif 250 <= v < 400 or 900 < v <= 1200 %}Watch · leafy ~400–900 ppm
+              {% else %}Out of range · leafy ~400–900 ppm
+              {% endif %}
             icon: mdi:water-percent
-          - type: tile
-            entity: __HAL.water_temp__
-            name: Water temp
+            icon_color: >-
+              {% set v = states('__HQ.live_tds__') | float(-99) %}
+              {% if v < -50 %}disabled
+              {% elif 400 <= v <= 900 %}green
+              {% elif 250 <= v < 400 or 900 < v <= 1200 %}amber
+              {% else %}red
+              {% endif %}
+            layout: vertical
+            tap_action:
+              action: navigate
+              navigation_path: /hydroq/water
+          - type: custom:mushroom-template-card
+            primary: "{{ states('__HQ.live_ec__') }} mS/cm"
+            secondary: >-
+              {% set v = states('__HQ.live_ec__') | float(-99) %}
+              {% if v < -50 %}No reading
+              {% elif 0.8 <= v <= 1.8 %}Safe · leafy ~0.8–1.8
+              {% elif 0.5 <= v < 0.8 or 1.8 < v <= 2.4 %}Watch · leafy ~0.8–1.8
+              {% else %}Out of range · leafy ~0.8–1.8
+              {% endif %}
+            icon: mdi:flash
+            icon_color: >-
+              {% set v = states('__HQ.live_ec__') | float(-99) %}
+              {% if v < -50 %}disabled
+              {% elif 0.8 <= v <= 1.8 %}green
+              {% elif 0.5 <= v < 0.8 or 1.8 < v <= 2.4 %}amber
+              {% else %}red
+              {% endif %}
+            layout: vertical
+            tap_action:
+              action: navigate
+              navigation_path: /hydroq/water
+          - type: custom:mushroom-template-card
+            primary: "{{ states('__HAL.water_temp__') }} °C"
+            secondary: >-
+              {% set v = states('__HAL.water_temp__') | float(-99) %}
+              {% if v < -50 %}No reading
+              {% elif 18 <= v <= 26 %}Safe · 18–26 °C
+              {% elif 16 <= v < 18 or 26 < v <= 28 %}Watch · 18–26 °C
+              {% else %}Out of range · 18–26 °C
+              {% endif %}
             icon: mdi:thermometer-water
+            icon_color: >-
+              {% set v = states('__HAL.water_temp__') | float(-99) %}
+              {% if v < -50 %}disabled
+              {% elif 18 <= v <= 26 %}green
+              {% elif 16 <= v < 18 or 26 < v <= 28 %}amber
+              {% else %}red
+              {% endif %}
+            layout: vertical
           - type: tile
             entity: __HAL.do__
             name: Dissolved O₂
-            icon: mdi:molecule-co2
+            icon: mdi:water-opacity
           - type: tile
             entity: __HAL.co2__
             name: Air CO₂
@@ -139,6 +188,8 @@ views:
             entity: __HQ.tds_factor__
             name: TDS scale
             icon: mdi:scale-balance
+            grid_options:
+              columns: full
 
       - type: grid
         column_span: 4
@@ -356,11 +407,10 @@ views:
       - type: grid
         column_span: 4
         cards:
-          - type: heading
-            heading: pH
-            heading_style: title
-            icon: mdi:ph
           - type: custom:vertical-stack-in-card
+            title: pH
+            grid_options:
+              columns: 6
             cards:
               - type: custom:mini-graph-card
                 entities:
@@ -443,11 +493,10 @@ views:
                     name: Neutralize
                     icon_animation: true
 
-          - type: heading
-            heading: EC / TDS
-            heading_style: title
-            icon: mdi:water-percent
           - type: custom:vertical-stack-in-card
+            title: EC / TDS
+            grid_options:
+              columns: 6
             cards:
               - type: custom:mini-graph-card
                 entities:
