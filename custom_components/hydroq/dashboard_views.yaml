@@ -90,19 +90,25 @@ views:
 
       - type: grid
         column_span: 4
+        grid_options:
+          columns: 3
+          rows: 2
         cards:
           - type: heading
             heading: Live readings
             heading_style: title
             icon: mdi:gauge
           - type: custom:mushroom-template-card
-            primary: "{{ states('__HAL.ph__') }} pH"
+            primary: >-
+              {% set s = states('__HAL.ph__') %}
+              {{ (s | float | round(2)) ~ ' pH' if is_number(s) else 'pH —' }}
             secondary: >-
               {% set v = states('__HAL.ph__') | float(-99) %}
-              {% if v < -50 %}No reading
-              {% elif 5.8 <= v <= 6.5 %}Safe · target 5.8–6.5
-              {% elif 5.5 <= v < 5.8 or 6.5 < v <= 6.8 %}Watch · target 5.8–6.5
-              {% else %}Out of range · target 5.8–6.5
+              {% if v < -50 %}—{% elif 5.8 <= v <= 6.5 %}Safe 5.8–6.5
+              {% elif v < 5.5 %}Too low
+              {% elif v < 5.8 %}Low
+              {% elif v <= 6.8 %}High
+              {% else %}Too high
               {% endif %}
             icon: mdi:ph
             icon_color: >-
@@ -113,40 +119,26 @@ views:
               {% else %}red
               {% endif %}
             layout: vertical
+            fill_container: true
             tap_action:
               action: navigate
               navigation_path: /hydroq/water
           - type: custom:mushroom-template-card
-            primary: "{{ states('__HQ.live_tds__') }} ppm"
-            secondary: >-
-              {% set v = states('__HQ.live_tds__') | float(-99) %}
-              {% if v < -50 %}No reading
-              {% elif 400 <= v <= 900 %}Safe · leafy ~400–900 ppm
-              {% elif 250 <= v < 400 or 900 < v <= 1200 %}Watch · leafy ~400–900 ppm
-              {% else %}Out of range · leafy ~400–900 ppm
-              {% endif %}
-            icon: mdi:water-percent
-            icon_color: >-
-              {% set v = states('__HQ.live_tds__') | float(-99) %}
-              {% if v < -50 %}disabled
-              {% elif 400 <= v <= 900 %}green
-              {% elif 250 <= v < 400 or 900 < v <= 1200 %}amber
-              {% else %}red
-              {% endif %}
-            layout: vertical
-            tap_action:
-              action: navigate
-              navigation_path: /hydroq/water
-          - type: custom:mushroom-template-card
-            primary: "{{ states('__HQ.live_ec__') }} mS/cm"
+            primary: >-
+              {% set ec = states('__HQ.live_ec__') %}
+              {% set ppm = states('__HQ.live_tds__') %}
+              {% if is_number(ec) and is_number(ppm) %}
+              {{ ec | float | round(2) }} mS/cm · {{ ppm | float | round(0) }} ppm
+              {% else %}EC/TDS —{% endif %}
             secondary: >-
               {% set v = states('__HQ.live_ec__') | float(-99) %}
-              {% if v < -50 %}No reading
-              {% elif 0.8 <= v <= 1.8 %}Safe · leafy ~0.8–1.8
-              {% elif 0.5 <= v < 0.8 or 1.8 < v <= 2.4 %}Watch · leafy ~0.8–1.8
-              {% else %}Out of range · leafy ~0.8–1.8
+              {% if v < -50 %}—{% elif 0.8 <= v <= 1.8 %}Safe 0.8–1.8
+              {% elif v < 0.5 %}Too low
+              {% elif v < 0.8 %}Low
+              {% elif v <= 2.4 %}High
+              {% else %}Too high
               {% endif %}
-            icon: mdi:flash
+            icon: mdi:sprout-outline
             icon_color: >-
               {% set v = states('__HQ.live_ec__') | float(-99) %}
               {% if v < -50 %}disabled
@@ -155,17 +147,19 @@ views:
               {% else %}red
               {% endif %}
             layout: vertical
+            fill_container: true
             tap_action:
               action: navigate
               navigation_path: /hydroq/water
           - type: custom:mushroom-template-card
-            primary: "{{ states('__HAL.water_temp__') }} °C"
+            primary: >-
+              {% set s = states('__HAL.water_temp__') %}
+              {{ (s | float | round(1)) ~ ' °C' if is_number(s) else 'Temp —' }}
             secondary: >-
               {% set v = states('__HAL.water_temp__') | float(-99) %}
-              {% if v < -50 %}No reading
-              {% elif 18 <= v <= 26 %}Safe · 18–26 °C
-              {% elif 16 <= v < 18 or 26 < v <= 28 %}Watch · 18–26 °C
-              {% else %}Out of range · 18–26 °C
+              {% if v < -50 %}—{% elif 18 <= v <= 26 %}Safe 18–26 °C
+              {% elif v < 18 %}Cool
+              {% else %}Warm
               {% endif %}
             icon: mdi:thermometer-water
             icon_color: >-
@@ -176,6 +170,7 @@ views:
               {% else %}red
               {% endif %}
             layout: vertical
+            fill_container: true
           - type: tile
             entity: __HAL.do__
             name: Dissolved O₂
@@ -188,8 +183,6 @@ views:
             entity: __HQ.tds_factor__
             name: TDS scale
             icon: mdi:scale-balance
-            grid_options:
-              columns: full
 
       - type: grid
         column_span: 4
