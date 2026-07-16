@@ -1,0 +1,100 @@
+{
+  "title": "HydroQ",
+  "config": {
+    "step": {
+      "controller": {
+        "title": "HydroQ controller",
+        "description": "Select the ESPHome controller and hardware profile for this zone.",
+        "data": {
+          "zone_name": "Zone name",
+          "controller_device_id": "ESPHome controller device",
+          "hardware_profile": "Hardware profile"
+        }
+      },
+      "lighting": {
+        "title": "Grow lights kit",
+        "description": "The main controller always has 4 light stand relays. Choose an optional additional kit if you flash a wifi-relay / Grow Lights board. You can change this later in HydroQ options.",
+        "data": {
+          "light_stand_count": "Lighting setup"
+        }
+      },
+      "mapping": {
+        "title": "Assign hardware",
+        "description": "Confirm sensor and actuator bindings. For lights, pick switches from the controller and/or HydroQ Grow Lights board.",
+        "data": {
+          "ph": "pH sensor",
+          "tds": "TDS sensor",
+          "water_temp": "Water temperature",
+          "water_level": "Water level",
+          "emergency_stop": "Emergency stop",
+          "irrigation_pump": "Irrigation pump",
+          "solution_a": "Solution A pump",
+          "solution_b": "Solution B pump",
+          "solution_c": "Solution C pump",
+          "ph_pump": "pH pump",
+          "neutralization": "Neutralization pump",
+          "lights": "Grow light stands",
+          "cal_ph_neutral": "Calibrate pH neutral button",
+          "cal_ph_acid": "Calibrate pH acid button",
+          "cal_tds": "Calibrate TDS button",
+          "cal_do": "Calibrate DO button"
+        }
+      },
+      "reservoir": {
+        "title": "Reservoir & pumps",
+        "data": {
+          "reservoir_volume_l": "Reservoir volume (L)",
+          "level_sensor_type": "Level sensor type",
+          "pump_ml_per_min": "Dosing pump rate (ml/min)",
+          "simulation": "Simulation mode (no real hardware)"
+        }
+      },
+      "frontend": {
+        "title": "Lovelace cards (HACS)",
+        "description": "The HydroQ operator dashboard needs these frontend cards from HACS before use:\n\n• Mushroom Cards\n• Bubble Card\n• Mini Graph Card\n• Vertical Stack In Card\n\nInstall them in HACS → Frontend, then reload the browser. HydroQ cannot install cards automatically.",
+        "data": {
+          "cards_installed": "I installed the required Lovelace cards via HACS"
+        }
+      }
+    },
+    "error": {
+      "cards_required": "Confirm the required HACS cards are installed to continue."
+    },
+    "abort": {
+      "no_devices": "No devices found. Add your ESPHome controller first.",
+      "already_configured": "This controller is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "HydroQ options",
+        "data": {
+          "desired_ph": "Desired pH",
+          "ph_tolerance": "pH tolerance",
+          "desired_tds": "Desired TDS (ppm)",
+          "tds_tolerance": "TDS tolerance",
+          "next": "After this"
+        }
+      },
+      "lighting": {
+        "title": "Lighting kit",
+        "description": "Main board always has 4 stands. After flashing an additional Grow Lights board, pick Controller+kit size and map the new switches. Dashboard updates after save.",
+        "data": {
+          "light_stand_count": "Lighting setup",
+          "lights": "Grow light stand switches"
+        }
+      }
+    }
+  },
+  "issues": {
+    "uncalibrated": {
+      "title": "Sensors need calibration",
+      "description": "Run HydroQ calibration before enabling auto dosing."
+    },
+    "sensor_unavailable": {
+      "title": "Sensor unavailable",
+      "description": "Required sensor `{sensor}` is unavailable."
+    }
+  }
+}

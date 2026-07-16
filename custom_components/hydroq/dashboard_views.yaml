@@ -1,0 +1,1084 @@
+# HydroQ operator dashboard (derived from dashboard2).
+# Placeholders resolved at install: __HQ.<key>__  __HAL.<role>__  __HAL.light_N__
+# Requires HACS: Mushroom, Bubble Card, Mini Graph Card, Vertical Stack In Card.
+views:
+  - type: sections
+    max_columns: 4
+    title: Home
+    path: home
+    icon: mdi:sprout
+    badges:
+      - type: entity
+        show_name: true
+        show_state: true
+        show_icon: true
+        entity: __HQ.status__
+        name: Status
+      - type: entity
+        show_name: true
+        show_state: true
+        show_icon: true
+        entity: __HQ.health__
+        name: Health
+      - type: custom:mushroom-template-badge
+        content: Lights
+        icon: mdi:lightbulb-group
+        color: yellow
+        entity: __HQ.grow_lights__
+        tap_action:
+          action: navigate
+          navigation_path: /hydroq/light
+        label: ""
+      - type: entity
+        show_name: true
+        show_state: true
+        show_icon: true
+        entity: __HQ.water_ok__
+        name: Water OK
+      - type: entity
+        show_name: true
+        show_state: true
+        show_icon: true
+        entity: __HAL.water_temp__
+        name: Water Temp
+    sections:
+      - type: grid
+        column_span: 4
+        cards:
+          - type: markdown
+            content: >
+              <div style="text-align:center;margin:0.25rem 0 0.5rem;">
+              <img src="/hydroq/logo.png" alt="HydroQ — Hydroponic System Controller"
+              style="max-width:160px;width:40%;height:auto;" />
+              </div>
+            grid_options:
+              columns: full
+          - type: clock
+          - type: heading
+            heading: Grow Lights
+            heading_style: title
+            icon: mdi:lightbulb-group
+          - type: custom:bubble-card
+            card_type: button
+            name: Grow Lights
+            icon: mdi:lightbulb-group
+            entity: __HQ.grow_lights__
+            button_type: switch
+            show_state: true
+            tap_action:
+              action: toggle
+            grid_options:
+              columns: full
+          - type: heading
+            heading: Total Dissolved Solids
+            heading_style: title
+            icon: mdi:water-percent
+          - type: custom:vertical-stack-in-card
+            cards:
+              - type: custom:mini-graph-card
+                entities:
+                  - entity: __HAL.tds__
+                    name: TDS Level
+                hours_to_show: 24
+                points_per_hour: 20
+                line_width: 2
+                font_size: 75
+                color_thresholds:
+                  - value: 200
+                    color: "#3498db"
+                  - value: 400
+                    color: "#2ecc71"
+                  - value: 800
+                    color: "#f1c40f"
+                  - value: 1500
+                    color: "#e74c3c"
+                show:
+                  points: true
+                  fill: true
+                  labels: true
+                  average: true
+                  state: true
+                tap_action:
+                  action: more-info
+              - type: custom:bubble-card
+                card_type: separator
+                name: Auto EC
+                icon: mdi:refresh-auto
+                sub_button:
+                  - entity: __HQ.auto_ec__
+                    tap_action:
+                      action: toggle
+              - type: custom:bubble-card
+                card_type: button
+                button_type: slider
+                entity: __HQ.desired_ec_tds__
+                name: Desired TDS
+                icon: mdi:sprout-outline
+                show_state: true
+                hold_action:
+                  action: more-info
+                sub_button:
+                  - entity: __HQ.start_nutrients__
+                    name: Dose nutrients
+                    icon: mdi:play
+                    show_name: true
+                    tap_action:
+                      action: call-service
+                      service: button.press
+                      target:
+                        entity_id: __HQ.start_nutrients__
+                  - entity: __HQ.start_neutralize__
+                    name: Neutralize
+                    icon: mdi:water-minus
+                    show_name: true
+                    tap_action:
+                      action: call-service
+                      service: button.press
+                      target:
+                        entity_id: __HQ.start_neutralize__
+              - type: custom:bubble-card
+                card_type: button
+                button_type: slider
+                entity: __HQ.ec_tolerance__
+                name: EC Tolerance
+                show_state: true
+              - type: horizontal-stack
+                cards:
+                  - type: custom:mushroom-fan-card
+                    entity: __HAL.nutrient_a__
+                    icon_animation: true
+                    name: Pump A
+                  - type: custom:mushroom-fan-card
+                    entity: __HAL.nutrient_b__
+                    icon_animation: true
+                    name: Pump B
+                  - type: custom:mushroom-fan-card
+                    entity: __HAL.nutrient_c__
+                    icon_animation: true
+                    name: Pump C
+              - type: custom:mushroom-entity-card
+                entity: __HQ.dosing_state__
+                name: Dosing State
+                icon: mdi:flask
+                primary_info: name
+                secondary_info: state
+              - type: custom:bubble-card
+                card_type: button
+                entity: __HQ.start_balance__
+                name: Balance System
+                icon: mdi:scale-balance
+                tap_action:
+                  action: call-service
+                  service: button.press
+                  target:
+                    entity_id: __HQ.start_balance__
+              - type: custom:bubble-card
+                card_type: button
+                entity: __HQ.stop_dosing__
+                name: Force Stop Dosing
+                icon: mdi:close-octagon-outline
+                tap_action:
+                  action: call-service
+                  service: button.press
+                  target:
+                    entity_id: __HQ.stop_dosing__
+          - type: custom:vertical-stack-in-card
+            cards:
+              - type: custom:mini-graph-card
+                entities:
+                  - entity: __HAL.ph__
+                    name: pH Level
+                hours_to_show: 24
+                points_per_hour: 30
+                line_width: 2
+                font_size: 75
+                color_thresholds:
+                  - value: 5.5
+                    color: "#e74c3c"
+                  - value: 5.8
+                    color: "#f1c40f"
+                  - value: 6
+                    color: "#2ecc71"
+                  - value: 6.3
+                    color: "#2ecc71"
+                  - value: 6.5
+                    color: "#f1c40f"
+                  - value: 7
+                    color: "#e74c3c"
+                show:
+                  points: true
+                  fill: true
+                  labels: true
+                  average: true
+                  state: true
+                tap_action:
+                  action: more-info
+              - type: custom:bubble-card
+                card_type: separator
+                name: Auto pH
+                icon: mdi:refresh-auto
+                sub_button:
+                  - entity: __HQ.auto_ph__
+                    tap_action:
+                      action: toggle
+                    icon: mdi:refresh-auto
+              - type: custom:bubble-card
+                card_type: button
+                button_type: slider
+                entity: __HQ.desired_ph__
+                name: Desired pH
+                icon: mdi:ph
+                show_state: true
+                max_value: 14
+                min_value: 4
+                hold_action:
+                  action: more-info
+                sub_button:
+                  - entity: __HQ.start_ph__
+                    name: Dose pH
+                    icon: mdi:play
+                    show_name: true
+                    tap_action:
+                      action: call-service
+                      service: button.press
+                      target:
+                        entity_id: __HQ.start_ph__
+              - type: custom:bubble-card
+                card_type: button
+                button_type: slider
+                entity: __HQ.ph_tolerance__
+                name: pH Tolerance
+                show_state: true
+              - type: horizontal-stack
+                cards:
+                  - type: custom:mushroom-fan-card
+                    entity: __HAL.ph_up__
+                    icon_animation: true
+                    name: pH Pump
+                  - type: custom:mushroom-fan-card
+                    entity: __HAL.neutralization__
+                    icon_animation: true
+                    name: Neutralize
+              - type: custom:mushroom-entity-card
+                entity: __HQ.dosing_active__
+                name: Dosing Active
+                icon: mdi:fan-clock
+                primary_info: name
+                secondary_info: state
+              - type: custom:bubble-card
+                card_type: button
+                entity: __HQ.stop_dosing__
+                name: Force Stop
+                icon: mdi:close-octagon-outline
+                tap_action:
+                  action: call-service
+                  service: button.press
+                  target:
+                    entity_id: __HQ.stop_dosing__
+            grid_options:
+              columns: 21
+              rows: auto
+          - type: vertical-stack
+            grid_options:
+              columns: full
+              rows: auto
+            cards:
+              - type: custom:mushroom-entity-card
+                entity: __HQ.auto_irrigation__
+                name: Auto Irrigation
+                icon: mdi:water-pump
+                primary_info: name
+                secondary_info: state
+                tap_action:
+                  action: toggle
+              - type: custom:mushroom-entity-card
+                entity: __HAL.irrigation__
+                name: Manual Pump (override)
+                icon: mdi:water-pump
+                primary_info: name
+                secondary_info: state
+                tap_action:
+                  action: toggle
+              - type: markdown
+                content: >
+                  **Manual Pump** toggles the ESPHome actuator directly (bypasses
+                  HydroQ schedule / FSM). Prefer Start / Stop below for normal use.
+              - type: custom:mushroom-entity-card
+                entity: __HQ.irrigation_active__
+                name: Currently Running
+                icon: mdi:water-pump
+                primary_info: name
+                secondary_info: state
+              - type: custom:mushroom-entity-card
+                entity: __HQ.irrigation_state__
+                name: Irrigation State
+                icon: mdi:information
+                primary_info: name
+                secondary_info: state
+              - type: horizontal-stack
+                cards:
+                  - type: custom:mushroom-entity-card
+                    entity: __HQ.start_irrigation__
+                    name: Start
+                    icon: mdi:play
+                    tap_action:
+                      action: call-service
+                      service: button.press
+                      target:
+                        entity_id: __HQ.start_irrigation__
+                  - type: custom:mushroom-entity-card
+                    entity: __HQ.stop_irrigation__
+                    name: Stop
+                    icon: mdi:stop
+                    tap_action:
+                      action: call-service
+                      service: button.press
+                      target:
+                        entity_id: __HQ.stop_irrigation__
+                  - type: custom:mushroom-entity-card
+                    entity: __HQ.emergency_stop__
+                    name: E-Stop
+                    icon: mdi:alert-octagon
+                    tap_action:
+                      action: call-service
+                      service: button.press
+                      target:
+                        entity_id: __HQ.emergency_stop__
+
+  - type: sections
+    max_columns: 4
+    title: Irrigation
+    path: irrigation
+    icon: mdi:water-pump
+    badges:
+      - type: entity
+        show_name: true
+        show_state: true
+        show_icon: true
+        entity: __HQ.irrigation_active__
+        name: Running
+      - type: entity
+        show_name: true
+        show_state: true
+        show_icon: true
+        entity: __HQ.irrigation_state__
+        name: State
+      - type: entity
+        show_name: true
+        show_state: true
+        show_icon: true
+        entity: __HQ.water_ok__
+        name: Water OK
+    sections:
+      - type: grid
+        column_span: 4
+        cards:
+          - type: heading
+            heading: Smart Irrigation
+            heading_style: title
+            icon: mdi:water-pump
+          - type: horizontal-stack
+            cards:
+              - type: custom:mushroom-entity-card
+                entity: __HQ.auto_irrigation__
+                name: Auto Mode
+                icon: mdi:water-pump
+                primary_info: name
+                secondary_info: state
+                icon_color: green
+                tap_action:
+                  action: toggle
+              - type: custom:mushroom-entity-card
+                entity: __HAL.irrigation__
+                name: Manual Pump (override)
+                icon: mdi:water-pump
+                primary_info: name
+                secondary_info: state
+                icon_color: orange
+                tap_action:
+                  action: toggle
+          - type: markdown
+            content: >
+              **Manual Pump (override)** talks to ESPHome directly and bypasses the
+              HydroQ irrigation FSM. Prefer **Start / Stop** for normal runs.
+          - type: heading
+            heading: Controls
+            heading_style: title
+            icon: mdi:gesture-tap-button
+          - type: horizontal-stack
+            cards:
+              - type: custom:mushroom-entity-card
+                entity: __HQ.start_irrigation__
+                name: Start Irrigation
+                icon: mdi:play-circle
+                tap_action:
+                  action: call-service
+                  service: button.press
+                  target:
+                    entity_id: __HQ.start_irrigation__
+              - type: custom:mushroom-entity-card
+                entity: __HQ.stop_irrigation__
+                name: Stop Irrigation
+                icon: mdi:stop-circle
+                tap_action:
+                  action: call-service
+                  service: button.press
+                  target:
+                    entity_id: __HQ.stop_irrigation__
+          - type: custom:mushroom-select-card
+            entity: __HQ.growth_stage__
+            name: Growth Stage
+            icon: mdi:sprout
+            primary_info: name
+            secondary_info: state
+          - type: markdown
+            content: >
+              **Auto Mode ON** — HydroQ runs scheduled irrigation when water is OK.
+
+
+              **Auto Mode OFF** — use HydroQ Start/Stop (or Manual Pump override).
+
+
+              Schedule: open the **Schedule** page (up to 5 daily events).
+
+  - type: sections
+    max_columns: 4
+    title: Lights
+    path: light
+    icon: mdi:lightbulb-group
+    sections:
+      - type: grid
+        column_span: 4
+        cards:
+          - type: heading
+            heading: Grow Lights
+            heading_style: title
+            icon: mdi:lightbulb-fluorescent-tube
+          - type: custom:mushroom-entity-card
+            entity: __HQ.grow_lights__
+            name: All Lights
+            icon: mdi:lightbulb-group
+            primary_info: name
+            secondary_info: state
+            tap_action:
+              action: toggle
+          - type: custom:mushroom-entity-card
+            entity: __HQ.auto_lighting__
+            name: Auto Lighting
+            icon: mdi:refresh-auto
+            primary_info: name
+            secondary_info: state
+            tap_action:
+              action: toggle
+          - type: markdown
+            content: >
+              Per-stand toggles are **manual overrides**. Prefer **All Lights**
+              for cascade on/off.
+          - type: grid
+            columns: 4
+            square: false
+            title: Light Stands (override)
+            grid_options:
+              columns: full
+              rows: auto
+            cards:
+              - type: custom:vertical-stack-in-card
+                cards:
+                  - type: custom:mushroom-entity-card
+                    entity: __HAL.light_0__
+                    name: Stand 1
+                    icon: mdi:lightbulb
+                    layout: horizontal
+                    tap_action:
+                      action: toggle
+                  - type: custom:mushroom-entity-card
+                    entity: __HAL.light_1__
+                    name: Stand 2
+                    icon: mdi:lightbulb
+                    layout: horizontal
+                    tap_action:
+                      action: toggle
+                  - type: custom:mushroom-entity-card
+                    entity: __HAL.light_2__
+                    name: Stand 3
+                    icon: mdi:lightbulb
+                    layout: horizontal
+                    tap_action:
+                      action: toggle
+              - type: custom:vertical-stack-in-card
+                cards:
+                  - type: custom:mushroom-entity-card
+                    entity: __HAL.light_3__
+                    name: Stand 4
+                    icon: mdi:lightbulb
+                    layout: horizontal
+                    tap_action:
+                      action: toggle
+                  - type: custom:mushroom-entity-card
+                    entity: __HAL.light_4__
+                    name: Stand 5
+                    icon: mdi:lightbulb
+                    layout: horizontal
+                    tap_action:
+                      action: toggle
+                  - type: custom:mushroom-entity-card
+                    entity: __HAL.light_5__
+                    name: Stand 6
+                    icon: mdi:lightbulb
+                    layout: horizontal
+                    tap_action:
+                      action: toggle
+              - type: custom:vertical-stack-in-card
+                cards:
+                  - type: custom:mushroom-entity-card
+                    entity: __HAL.light_6__
+                    name: Stand 7
+                    icon: mdi:lightbulb
+                    layout: horizontal
+                    tap_action:
+                      action: toggle
+                  - type: custom:mushroom-entity-card
+                    entity: __HAL.light_7__
+                    name: Stand 8
+                    icon: mdi:lightbulb
+                    layout: horizontal
+                    tap_action:
+                      action: toggle
+                  - type: custom:mushroom-entity-card
+                    entity: __HAL.light_8__
+                    name: Stand 9
+                    icon: mdi:lightbulb
+                    layout: horizontal
+                    tap_action:
+                      action: toggle
+              - type: custom:vertical-stack-in-card
+                cards:
+                  - type: custom:mushroom-entity-card
+                    entity: __HAL.light_9__
+                    name: Stand 10
+                    icon: mdi:lightbulb
+                    layout: horizontal
+                    tap_action:
+                      action: toggle
+                  - type: custom:mushroom-entity-card
+                    entity: __HAL.light_10__
+                    name: Stand 11
+                    icon: mdi:lightbulb
+                    layout: horizontal
+                    tap_action:
+                      action: toggle
+                  - type: custom:mushroom-entity-card
+                    entity: __HAL.light_11__
+                    name: Stand 12
+                    icon: mdi:lightbulb
+                    layout: horizontal
+                    tap_action:
+                      action: toggle
+              - type: custom:vertical-stack-in-card
+                cards:
+                  - type: custom:mushroom-entity-card
+                    entity: __HAL.light_12__
+                    name: Stand 13
+                    icon: mdi:lightbulb
+                    layout: horizontal
+                    tap_action:
+                      action: toggle
+                  - type: custom:mushroom-entity-card
+                    entity: __HAL.light_13__
+                    name: Stand 14
+                    icon: mdi:lightbulb
+                    layout: horizontal
+                    tap_action:
+                      action: toggle
+                  - type: custom:mushroom-entity-card
+                    entity: __HAL.light_14__
+                    name: Stand 15
+                    icon: mdi:lightbulb
+                    layout: horizontal
+                    tap_action:
+                      action: toggle
+              - type: custom:vertical-stack-in-card
+                cards:
+                  - type: custom:mushroom-entity-card
+                    entity: __HAL.light_15__
+                    name: Stand 16
+                    icon: mdi:lightbulb
+                    layout: horizontal
+                    tap_action:
+                      action: toggle
+                  - type: custom:mushroom-entity-card
+                    entity: __HAL.light_16__
+                    name: Stand 17
+                    icon: mdi:lightbulb
+                    layout: horizontal
+                    tap_action:
+                      action: toggle
+                  - type: custom:mushroom-entity-card
+                    entity: __HAL.light_17__
+                    name: Stand 18
+                    icon: mdi:lightbulb
+                    layout: horizontal
+                    tap_action:
+                      action: toggle
+              - type: custom:vertical-stack-in-card
+                cards:
+                  - type: custom:mushroom-entity-card
+                    entity: __HAL.light_18__
+                    name: Stand 19
+                    icon: mdi:lightbulb
+                    layout: horizontal
+                    tap_action:
+                      action: toggle
+                  - type: custom:mushroom-entity-card
+                    entity: __HAL.light_19__
+                    name: Stand 20
+                    icon: mdi:lightbulb
+                    layout: horizontal
+                    tap_action:
+                      action: toggle
+
+  - type: sections
+    max_columns: 4
+    title: Calibration
+    path: calibration
+    icon: mdi:flask-outline
+    badges:
+      - type: entity
+        show_name: true
+        show_state: true
+        show_icon: true
+        entity: __HAL.water_temp__
+        name: Water Temp
+        color: cyan
+      - type: entity
+        show_name: true
+        show_state: true
+        show_icon: true
+        entity: __HAL.ph__
+        name: pH
+      - type: entity
+        show_name: true
+        show_state: true
+        show_icon: true
+        entity: __HAL.tds__
+        name: TDS
+    sections:
+      - type: grid
+        column_span: 3
+        cards:
+          - type: custom:vertical-stack-in-card
+            title: pH Calibration
+            cards:
+              - type: custom:mushroom-title-card
+                title: Current Reading
+              - type: custom:mushroom-entity-card
+                entity: __HAL.ph__
+                name: pH Value
+                icon: mdi:ph
+                primary_info: name
+                secondary_info: state
+              - type: custom:mushroom-title-card
+                title: Calibration Controls
+              - type: custom:mushroom-template-card
+                primary: Calibrate pH Neutral
+                icon: mdi:flask
+                icon_color: green
+                tap_action:
+                  action: call-service
+                  service: button.press
+                  target:
+                    entity_id: __HQ.cal_ph_neutral__
+              - type: custom:mushroom-template-card
+                primary: Calibrate pH Acid
+                icon: mdi:flask
+                icon_color: blue
+                tap_action:
+                  action: call-service
+                  service: button.press
+                  target:
+                    entity_id: __HQ.cal_ph_acid__
+              - type: custom:mini-graph-card
+                entities:
+                  - entity: __HAL.ph__
+                    name: pH Level
+                hours_to_show: 24
+                points_per_hour: 30
+                line_width: 2
+                font_size: 75
+                show:
+                  points: true
+                  fill: true
+                  labels: true
+                  average: true
+                  state: true
+          - type: custom:vertical-stack-in-card
+            title: TDS / EC Calibration
+            cards:
+              - type: custom:mushroom-title-card
+                title: Current Reading
+              - type: custom:mushroom-entity-card
+                entity: __HAL.tds__
+                name: TDS Value
+                icon: mdi:water
+                primary_info: name
+                secondary_info: state
+              - type: custom:mushroom-title-card
+                title: Calibration Controls
+              - type: custom:mushroom-template-card
+                primary: Calibrate EC / TDS
+                icon: mdi:flask-outline
+                icon_color: blue
+                tap_action:
+                  action: call-service
+                  service: button.press
+                  target:
+                    entity_id: __HQ.cal_ec__
+              - type: custom:mini-graph-card
+                entities:
+                  - entity: __HAL.tds__
+                    name: TDS Level
+                hours_to_show: 24
+                points_per_hour: 20
+                line_width: 2
+                font_size: 75
+                show:
+                  points: true
+                  fill: true
+                  labels: true
+                  average: true
+                  state: true
+          - type: custom:vertical-stack-in-card
+            title: Dissolved Oxygen
+            cards:
+              - type: custom:mushroom-title-card
+                title: Calibration
+              - type: custom:mushroom-template-card
+                primary: Air Calibration
+                icon: mdi:air-filter
+                icon_color: cyan
+                tap_action:
+                  action: call-service
+                  service: button.press
+                  target:
+                    entity_id: __HQ.cal_do__
+              - type: custom:mushroom-entity-card
+                entity: __HQ.last_event__
+                name: Last Event
+                icon: mdi:history
+                primary_info: name
+                secondary_info: state
+      - type: grid
+        column_span: 3
+        cards:
+          - type: heading
+            heading: Last calibrated
+            heading_style: title
+            icon: mdi:calendar-check
+          - type: custom:mushroom-entity-card
+            entity: __HQ.last_cal_ph__
+            name: Last pH cal
+            layout: horizontal
+          - type: custom:mushroom-entity-card
+            entity: __HQ.last_cal_tds__
+            name: Last TDS cal
+            layout: horizontal
+          - type: custom:mushroom-entity-card
+            entity: __HQ.last_cal_do__
+            name: Last DO cal
+            layout: horizontal
+          - type: heading
+            heading: Calibration Tips
+            heading_style: title
+            icon: mdi:information
+          - type: markdown
+            content: |
+              ### pH
+              1. Rinse probe with distilled water
+              2. Calibrate Neutral, then Acid
+
+              ### TDS / EC
+              1. Clean probe thoroughly
+              2. Use standard calibration solution
+              3. Wait for stable reading
+
+              ### DO
+              1. Clean probe surface
+              2. Hold in air, then run Air Calibration
+
+
+  - type: sections
+    max_columns: 4
+    title: Tools
+    path: tools
+    icon: mdi:wrench
+    sections:
+      - type: grid
+        column_span: 4
+        cards:
+          - type: heading
+            heading: Pump tests (10 seconds)
+            heading_style: title
+            icon: mdi:pump
+          - type: markdown
+            content: >
+              Safe bench checks. Water should be OK; stop other dosing first.
+          - type: grid
+            columns: 3
+            square: false
+            cards:
+              - type: custom:mushroom-entity-card
+                entity: __HQ.test_pump_a__
+                name: Test A
+                tap_action:
+                  action: call-service
+                  service: button.press
+                  target:
+                    entity_id: __HQ.test_pump_a__
+              - type: custom:mushroom-entity-card
+                entity: __HQ.test_pump_b__
+                name: Test B
+                tap_action:
+                  action: call-service
+                  service: button.press
+                  target:
+                    entity_id: __HQ.test_pump_b__
+              - type: custom:mushroom-entity-card
+                entity: __HQ.test_pump_c__
+                name: Test C
+                tap_action:
+                  action: call-service
+                  service: button.press
+                  target:
+                    entity_id: __HQ.test_pump_c__
+              - type: custom:mushroom-entity-card
+                entity: __HQ.test_ph_pump__
+                name: Test pH
+                tap_action:
+                  action: call-service
+                  service: button.press
+                  target:
+                    entity_id: __HQ.test_ph_pump__
+              - type: custom:mushroom-entity-card
+                entity: __HQ.test_irrigation__
+                name: Test irrig.
+                tap_action:
+                  action: call-service
+                  service: button.press
+                  target:
+                    entity_id: __HQ.test_irrigation__
+  - type: sections
+    max_columns: 4
+    title: Schedule
+    path: schedule
+    icon: mdi:calendar-clock
+    badges:
+      - type: entity
+        show_name: true
+        show_state: true
+        show_icon: true
+        entity: __HQ.auto_irrigation__
+        name: Auto Irrigation
+      - type: entity
+        show_name: true
+        show_state: true
+        show_icon: true
+        entity: __HQ.growth_stage__
+        name: Stage
+    sections:
+      - type: grid
+        column_span: 4
+        cards:
+          - type: heading
+            heading: Zone Control
+            heading_style: title
+            icon: mdi:sprout
+          - type: custom:mushroom-select-card
+            entity: __HQ.growth_stage__
+            name: Growth Stage
+            icon: mdi:sprout
+            primary_info: name
+            secondary_info: state
+          - type: custom:mushroom-select-card
+            entity: __HQ.system_mode__
+            name: System Mode
+            icon: mdi:cog
+            primary_info: name
+            secondary_info: state
+          - type: custom:mushroom-entity-card
+            entity: __HQ.auto_irrigation__
+            name: Auto Irrigation
+            icon: mdi:water-pump
+            tap_action:
+              action: toggle
+          - type: custom:mushroom-entity-card
+            entity: __HQ.auto_lighting__
+            name: Auto Lighting
+            icon: mdi:lightbulb
+            tap_action:
+              action: toggle
+          - type: custom:mushroom-entity-card
+            entity: __HQ.auto_ph__
+            name: Auto pH
+            icon: mdi:ph
+            tap_action:
+              action: toggle
+          - type: custom:mushroom-entity-card
+            entity: __HQ.auto_ec__
+            name: Auto EC
+            icon: mdi:water-percent
+            tap_action:
+              action: toggle
+          - type: markdown
+            content: >
+              **Growth stage** loads a recipe (setpoints + default slots). Edit the
+              five irrigation events below anytime — changes persist across restarts.
+
+
+              **Auto Irrigation ON** + Semi/Full-Auto → HydroQ fires each enabled
+              event at its start time. Each event = use today + time + minutes.
+          - type: heading
+            heading: Irrigation Schedule
+            heading_style: title
+            icon: mdi:calendar-clock
+          - type: custom:vertical-stack-in-card
+            title: Event 1
+            cards:
+              - type: custom:mushroom-entity-card
+                entity: __HQ.sched_1_label__
+                name: Plan
+                icon: mdi:calendar
+                primary_info: name
+                secondary_info: state
+              - type: custom:mushroom-entity-card
+                entity: __HQ.sched_1_enabled__
+                name: Use today
+                tap_action:
+                  action: toggle
+              - type: custom:mushroom-entity-card
+                entity: __HQ.sched_1_time__
+                name: Start time
+                icon: mdi:clock-start
+                primary_info: name
+                secondary_info: state
+              - type: custom:bubble-card
+                card_type: button
+                button_type: slider
+                entity: __HQ.sched_1_duration__
+                name: Run for (min)
+                show_state: true
+          - type: custom:vertical-stack-in-card
+            title: Event 2
+            cards:
+              - type: custom:mushroom-entity-card
+                entity: __HQ.sched_2_label__
+                name: Plan
+                icon: mdi:calendar
+                primary_info: name
+                secondary_info: state
+              - type: custom:mushroom-entity-card
+                entity: __HQ.sched_2_enabled__
+                name: Use today
+                tap_action:
+                  action: toggle
+              - type: custom:mushroom-entity-card
+                entity: __HQ.sched_2_time__
+                name: Start time
+                icon: mdi:clock-start
+                primary_info: name
+                secondary_info: state
+              - type: custom:bubble-card
+                card_type: button
+                button_type: slider
+                entity: __HQ.sched_2_duration__
+                name: Run for (min)
+                show_state: true
+          - type: custom:vertical-stack-in-card
+            title: Event 3
+            cards:
+              - type: custom:mushroom-entity-card
+                entity: __HQ.sched_3_label__
+                name: Plan
+                icon: mdi:calendar
+                primary_info: name
+                secondary_info: state
+              - type: custom:mushroom-entity-card
+                entity: __HQ.sched_3_enabled__
+                name: Use today
+                tap_action:
+                  action: toggle
+              - type: custom:mushroom-entity-card
+                entity: __HQ.sched_3_time__
+                name: Start time
+                icon: mdi:clock-start
+                primary_info: name
+                secondary_info: state
+              - type: custom:bubble-card
+                card_type: button
+                button_type: slider
+                entity: __HQ.sched_3_duration__
+                name: Run for (min)
+                show_state: true
+          - type: custom:vertical-stack-in-card
+            title: Event 4
+            cards:
+              - type: custom:mushroom-entity-card
+                entity: __HQ.sched_4_label__
+                name: Plan
+                icon: mdi:calendar
+                primary_info: name
+                secondary_info: state
+              - type: custom:mushroom-entity-card
+                entity: __HQ.sched_4_enabled__
+                name: Use today
+                tap_action:
+                  action: toggle
+              - type: custom:mushroom-entity-card
+                entity: __HQ.sched_4_time__
+                name: Start time
+                icon: mdi:clock-start
+                primary_info: name
+                secondary_info: state
+              - type: custom:bubble-card
+                card_type: button
+                button_type: slider
+                entity: __HQ.sched_4_duration__
+                name: Run for (min)
+                show_state: true
+          - type: custom:vertical-stack-in-card
+            title: Event 5
+            cards:
+              - type: custom:mushroom-entity-card
+                entity: __HQ.sched_5_label__
+                name: Plan
+                icon: mdi:calendar
+                primary_info: name
+                secondary_info: state
+              - type: custom:mushroom-entity-card
+                entity: __HQ.sched_5_enabled__
+                name: Use today
+                tap_action:
+                  action: toggle
+              - type: custom:mushroom-entity-card
+                entity: __HQ.sched_5_time__
+                name: Start time
+                icon: mdi:clock-start
+                primary_info: name
+                secondary_info: state
+              - type: custom:bubble-card
+                card_type: button
+                button_type: slider
+                entity: __HQ.sched_5_duration__
+                name: Run for (min)
+                show_state: true
+          - type: custom:mushroom-entity-card
+            entity: __HQ.last_event__
+            name: Last Event
+            icon: mdi:history
+            primary_info: name
+            secondary_info: state
+          - type: custom:mushroom-entity-card
+            entity: __HQ.active_alarm__
+            name: Alarm
+            icon: mdi:alarm-light
+            primary_info: name
+            secondary_info: state

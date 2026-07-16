@@ -1,0 +1,13 @@
+{
+  "domain": "hydroq",
+  "name": "HydroQ",
+  "codeowners": ["@hydroq"],
+  "config_flow": true,
+  "dependencies": ["frontend", "http", "lovelace"],
+  "documentation": "https://github.com/hydroq/hydroq",
+  "integration_type": "device",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/hydroq/hydroq/issues",
+  "requirements": [],
+  "version": "1.7.1"
+}

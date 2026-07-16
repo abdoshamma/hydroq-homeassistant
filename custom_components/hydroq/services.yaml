@@ -1,0 +1,72 @@
+{
+  "hydroq.create_dashboard": {
+    "name": "Create HydroQ dashboard",
+    "description": "Recreate the HydroQ sidebar dashboard from dashboard_views.yaml (resolves entity IDs). Requires HACS: Mushroom, Bubble Card, Mini Graph Card, Vertical Stack In Card."
+  },
+  "hydroq.start_irrigation": {
+    "name": "Start irrigation",
+    "description": "Start a HydroQ irrigation run.",
+    "fields": {
+      "entry_id": {"name": "Config entry ID", "description": "HydroQ zone entry id", "required": true, "example": "01ABC", "selector": {"text": null}},
+      "duration_min": {"name": "Duration (minutes)", "description": "Run duration", "example": "5", "selector": {"number": {"min": 0.1, "max": 120, "step": 0.1}}},
+      "event_number": {"name": "Event number", "description": "Schedule event 1-5", "example": "1", "selector": {"number": {"min": 1, "max": 5, "step": 1}}}
+    }
+  },
+  "hydroq.stop_irrigation": {
+    "name": "Stop irrigation",
+    "description": "Stop irrigation for a zone.",
+    "fields": {
+      "entry_id": {"name": "Config entry ID", "description": "HydroQ zone entry id", "required": true, "selector": {"text": null}}
+    }
+  },
+  "hydroq.start_dosing_ph": {
+    "name": "Start pH dosing",
+    "description": "Run pH adjustment loop.",
+    "fields": {
+      "entry_id": {"name": "Config entry ID", "description": "HydroQ zone entry id", "required": true, "selector": {"text": null}}
+    }
+  },
+  "hydroq.start_dosing_nutrients": {
+    "name": "Start nutrient dosing",
+    "description": "Dose nutrients toward target TDS (A then B).",
+    "fields": {
+      "entry_id": {"name": "Config entry ID", "description": "HydroQ zone entry id", "required": true, "selector": {"text": null}}
+    }
+  },
+  "hydroq.start_dosing_neutralize": {
+    "name": "Start neutralize",
+    "description": "Lower high TDS with Solution C (legacy neutralize).",
+    "fields": {
+      "entry_id": {"name": "Config entry ID", "description": "HydroQ zone entry id", "required": true, "selector": {"text": null}}
+    }
+  },
+  "hydroq.start_balance": {
+    "name": "Balance system",
+    "description": "Legacy balance: adjust pH, wait 60s, then TDS (dose or neutralize).",
+    "fields": {
+      "entry_id": {"name": "Config entry ID", "description": "HydroQ zone entry id", "required": true, "selector": {"text": null}}
+    }
+  },
+  "hydroq.stop_dosing": {
+    "name": "Stop dosing",
+    "description": "Abort active dosing.",
+    "fields": {
+      "entry_id": {"name": "Config entry ID", "description": "HydroQ zone entry id", "required": true, "selector": {"text": null}}
+    }
+  },
+  "hydroq.emergency_stop": {
+    "name": "Emergency stop",
+    "description": "Stop all HydroQ actuators for the zone.",
+    "fields": {
+      "entry_id": {"name": "Config entry ID", "description": "HydroQ zone entry id", "required": true, "selector": {"text": null}}
+    }
+  },
+  "hydroq.change_growth_stage": {
+    "name": "Change growth stage",
+    "description": "Apply a HydroQ recipe for the growth stage.",
+    "fields": {
+      "entry_id": {"name": "Config entry ID", "description": "HydroQ zone entry id", "required": true, "selector": {"text": null}},
+      "stage": {"name": "Stage", "description": "Seedling, Vegetative, Flowering, or Harvest", "required": true, "selector": {"text": null}}
+    }
+  }
+}
