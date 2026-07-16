@@ -145,6 +145,7 @@ _LEGACY_SENSOR = {
     "water_temp": SensorRole.WATER_TEMP,
     "water_level": SensorRole.WATER_LEVEL,
     "emergency_stop": SensorRole.ESTOP,
+    "co2": SensorRole.CO2,
 }
 
 

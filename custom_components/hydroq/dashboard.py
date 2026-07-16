@@ -1,4 +1,4 @@
-"""Register HydroQ Lovelace dashboard from remapped dashboard2 template."""
+"""Register HydroQ Lovelace dashboard from product dashboard_views.yaml template."""
 
 from __future__ import annotations
 
@@ -93,7 +93,16 @@ HQ_KEYS = (
     "sched_5_label",
 )
 
-HAL_SENSOR_ROLES = ("ph", "tds", "ec", "do", "water_temp", "water_level", "emergency_stop")
+HAL_SENSOR_ROLES = (
+    "ph",
+    "tds",
+    "ec",
+    "do",
+    "water_temp",
+    "water_level",
+    "emergency_stop",
+    "co2",
+)
 HAL_ACTUATOR_ROLES = (
     ChannelRole.NUTRIENT_A.value,
     ChannelRole.NUTRIENT_B.value,
@@ -284,44 +293,32 @@ def _build_zones_overview(hass: HomeAssistant) -> dict[str, Any] | None:
         entry = coordinator.entry
         name = getattr(coordinator, "zone_name", None) or entry.title or "Zone"
         prefix = f"{entry.entry_id}_"
-        status_eid = health_eid = water_eid = None
+        found: dict[str, str] = {}
         for ent in registry.entities.values():
             if ent.platform != DOMAIN or not (ent.unique_id or "").startswith(prefix):
                 continue
             key = (ent.unique_id or "")[len(prefix) :]
-            if key == "status":
-                status_eid = ent.entity_id
-            elif key == "health":
-                health_eid = ent.entity_id
-            elif key == "water_ok":
-                water_eid = ent.entity_id
+            if key in ("status", "health", "water_ok", "active_alarm", "growth_stage", "irrigation_active"):
+                found[key] = ent.entity_id
         stack: list[Any] = [
             {"type": "markdown", "content": f"### {name}"},
         ]
-        if status_eid:
+        for key, label in (
+            ("status", "Status"),
+            ("health", "Health"),
+            ("water_ok", "Water OK"),
+            ("active_alarm", "Alarm"),
+            ("growth_stage", "Stage"),
+            ("irrigation_active", "Irrigation"),
+        ):
+            eid = found.get(key)
+            if not eid:
+                continue
             stack.append(
                 {
                     "type": "custom:mushroom-entity-card",
-                    "entity": status_eid,
-                    "name": "Status",
-                    "layout": "horizontal",
-                }
-            )
-        if health_eid:
-            stack.append(
-                {
-                    "type": "custom:mushroom-entity-card",
-                    "entity": health_eid,
-                    "name": "Health",
-                    "layout": "horizontal",
-                }
-            )
-        if water_eid:
-            stack.append(
-                {
-                    "type": "custom:mushroom-entity-card",
-                    "entity": water_eid,
-                    "name": "Water OK",
+                    "entity": eid,
+                    "name": label,
                     "layout": "horizontal",
                 }
             )
@@ -344,6 +341,11 @@ def _build_zones_overview(hass: HomeAssistant) -> dict[str, Any] | None:
                         "type": "heading",
                         "heading": "All zones",
                         "heading_style": "title",
+                        "icon": "mdi:sprout",
+                    },
+                    {
+                        "type": "markdown",
+                        "content": "Each card is one HydroQ zone. Open **Overview** for the primary operator view.",
                     },
                     {
                         "type": "grid",

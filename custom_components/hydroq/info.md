@@ -15,16 +15,14 @@ Commercial hydroponic zone control for Home Assistant + ESPHome.
 | Mini Graph Card | `mini-graph-card` |
 | Vertical Stack In Card | `Vertical Stack In Card` |
 
-Optional: **Graphite Auto** theme (Home view uses it when installed).
-
 ## Features
 
-- Auto Lovelace operator dashboard (`/hydroq`)
+- Official commercial Lovelace dashboard (`/hydroq`): Overview · Water · Irrigation · Lights · Grow · Alarms · Service · System
 - Irrigation schedule (5 slots), Auto Irrigation, Semi/Full-Auto modes
 - Nutrient dosing (A → B), neutralize, pH up/down, Balance command
-- Grow-light control (controller + WiFi relay kit, stands 1–12)
-- Growth-stage recipes, calibration wizard, health score + notifications
-- Multi-zone: add one config entry per controller board
+- Grow-light control (controller + WiFi relay kit, stands 1–20)
+- Growth-stage recipes, calibration + pump tests, health score + notifications
+- Multi-zone: add one config entry per controller board (Zones tab when 2+)
 
 ## Setup
 
