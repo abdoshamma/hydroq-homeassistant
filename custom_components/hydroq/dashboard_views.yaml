@@ -1915,6 +1915,48 @@ views:
         column_span: 4
         cards:
           - type: heading
+            heading: Built-in recipes (500-scale ppm ≈ EC×500)
+            heading_style: title
+            icon: mdi:book-open-page-variant
+          - type: markdown
+            content: |
+              Defaults are starting points — fine-tune for your cultivar and water.
+
+              **Lettuce** — Seedling / Vegetative / Harvest (no Flowering)
+              - pH 5.8 · EC 0.6 → 0.9 → 1.1 (≈300 / 450 / 550 ppm)
+              - Lights 16h then 14h · irrigate 2–4× / day · stages ~10d + 25d
+
+              **Basil** — Seedling / Vegetative / Harvest
+              - pH 5.9 · EC 0.8 → 1.4 → 1.6 (≈400 / 700 / 800 ppm)
+              - Lights 16h then 14h · richer feed than lettuce · ~10d + 21d
+
+              **Spinach** — Seedling / Vegetative / Harvest
+              - pH 6.0 · EC 1.0 → 1.8 → 2.0 (≈500 / 900 / 1000 ppm)
+              - Lights 16h then 14h · ~12d + 28d
+
+              **Kale** — Seedling / Vegetative / Harvest
+              - pH 6.0 · EC 1.0 → 2.0 → 2.2 (≈500 / 1000 / 1100 ppm)
+              - Lights 16h then 14h · ~14d + 35d
+
+              **Strawberry** — Seedling / Vegetative / Flowering / Harvest
+              - pH 5.8 · EC 0.9 → 1.4 → 1.7 → 1.9
+              - Flower/Harvest use 12h light · ~14d + 21d + 21d
+
+              **Tomato** — Seedling / Vegetative / Flowering / Harvest
+              - pH 5.8–6.0 · EC 1.0 → 2.4 → 2.8 → 2.6 (heavy feeder)
+              - Longer irrigate pulses · ~21d + 35d + 35d
+
+              **Generic** — all 4 stages · mid leafy defaults if no plant is set
+
+              **Add your own:** Settings → HydroQ → Configure → **Manage plant recipes**
+              → **Create from template** (easiest) or Create blank.
+            grid_options:
+              columns: full
+
+      - type: grid
+        column_span: 4
+        cards:
+          - type: heading
             heading: Alarms & safety
             heading_style: title
             icon: mdi:alarm-light

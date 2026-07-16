@@ -95,53 +95,75 @@
       },
       "recipes": {
         "title": "Manage plant recipes",
-        "description": "Built-in plants cannot be overwritten. Copy a built-in to customize, or add your own.",
+        "description": "Recommended: Create from template (copies Lettuce/Tomato/…). Built-in plants stay read-only.",
         "data": {
-          "action": "Action",
-          "custom_plant": "Custom plant",
-          "builtin_plant": "Built-in plant"
+          "action": "What do you want to do?"
+        }
+      },
+      "recipe_from_template": {
+        "title": "Create from template",
+        "description": "{hint}",
+        "data": {
+          "template": "Start from this plant",
+          "label": "Name for your copy"
+        }
+      },
+      "recipe_pick_edit": {
+        "title": "Edit custom plant",
+        "data": {
+          "custom_plant": "Which plant?"
+        }
+      },
+      "recipe_pick_delete": {
+        "title": "Delete custom plant",
+        "description": "This cannot be undone. If it is the active plant, the zone switches to Generic.",
+        "data": {
+          "custom_plant": "Which plant to delete?"
         }
       },
       "recipe_plant": {
         "title": "Plant details",
+        "description": "Next screens ask for each stage (pH, EC, lights, irrigation).",
         "data": {
           "label": "Plant name",
-          "stages": "Stages"
+          "stages": "Stages (pick at least one)"
         }
       },
       "recipe_stage": {
-        "title": "Stage {stage} ({index}/{total})",
-        "description": "Configure {plant} — {stage}. Duration 0 on the last stage means no auto advance past it.",
+        "title": "{plant}: {stage} ({index}/{total})",
+        "description": "EC is in mS/cm. Duration 0 on the last stage means stay there (no auto advance).",
         "data": {
           "desired_ph": "Target pH",
           "ph_tolerance": "pH tolerance",
           "desired_ec": "Target EC (mS/cm)",
           "ec_tolerance": "EC tolerance (mS/cm)",
-          "duration_days": "Stage duration (days)",
-          "on_hour": "Lights on hour",
-          "on_minute": "Lights on minute",
-          "off_hour": "Lights off hour",
-          "off_minute": "Lights off minute",
-          "irr1_hour": "Irrigation 1 hour",
-          "irr1_minute": "Irrigation 1 minute",
-          "irr1_min": "Irrigation 1 minutes",
-          "irr2_enabled": "Enable irrigation 2",
-          "irr2_hour": "Irrigation 2 hour",
-          "irr2_minute": "Irrigation 2 minute",
-          "irr2_min": "Irrigation 2 minutes"
+          "duration_days": "Days in this stage (0 = final)",
+          "on_hour": "Lights ON — hour",
+          "on_minute": "Lights ON — minute",
+          "off_hour": "Lights OFF — hour",
+          "off_minute": "Lights OFF — minute",
+          "irr1_hour": "Irrigation 1 — hour",
+          "irr1_minute": "Irrigation 1 — minute",
+          "irr1_min": "Irrigation 1 — run minutes",
+          "irr2_enabled": "Enable second irrigation",
+          "irr2_hour": "Irrigation 2 — hour",
+          "irr2_minute": "Irrigation 2 — minute",
+          "irr2_min": "Irrigation 2 — run minutes"
         }
       },
       "recipe_save": {
         "title": "Save recipe",
-        "description": "Save {summary}?"
+        "description": "{summary}"
       }
     },
     "abort": {
-      "recipe_invalid": "Recipe validation failed."
+      "recipe_invalid": "Recipe validation failed. Check pH (4–9) and EC (0.05–6)."
     },
     "error": {
-      "name_required": "Plant name is required.",
-      "stages_required": "Select at least one stage."
+      "name_required": "Enter a plant name.",
+      "stages_required": "Select at least one growth stage.",
+      "no_custom": "You have no custom plants yet. Use Create from template first.",
+      "recipe_invalid": "Check pH (4.0–9.0) and EC (0.05–6.0 mS/cm), then continue."
     }
   },
   "issues": {

@@ -42,6 +42,7 @@ from .managers.recipe_manager import (
     PlantDef,
     Recipe,
     RecipeManager,
+    _coerce_stages,
     _slug,
     load_custom_recipes,
     serialize_custom_recipes,
@@ -375,67 +376,171 @@ class HydroQOptionsFlow(config_entries.OptionsFlow):
     ) -> FlowResult:
         customs = load_custom_recipes(self.config_entry.options.get(CONF_CUSTOM_RECIPES))
         custom_ids = sorted(customs.keys())
-        builtin_ids = sorted(BUILTIN_PLANTS.keys())
+        builtin_ids = [p for p in ("lettuce", "basil", "spinach", "kale", "strawberry", "tomato", "generic")]
 
         if user_input is not None:
             action = user_input["action"]
-            if action == "add":
-                self._recipe_draft = {"mode": "add", "stages": [], "recipes": {}}
-                return await self.async_step_recipe_plant()
-            if action == "edit" and user_input.get("custom_plant"):
-                pid = user_input["custom_plant"]
-                plant = customs[pid]
-                self._recipe_draft = {
-                    "mode": "edit",
-                    "plant_id": plant.plant_id,
-                    "label": plant.label,
-                    "stages": list(plant.stages),
-                    "recipes": {k: v.as_dict() for k, v in plant.recipes.items()},
-                }
-                self._stage_index = 0
-                return await self.async_step_recipe_stage()
-            if action == "copy" and user_input.get("builtin_plant"):
-                src = BUILTIN_PLANTS[user_input["builtin_plant"]]
+            if action == "from_template":
+                return await self.async_step_recipe_from_template()
+            if action == "blank":
+                # Prefill leafy-style stages from generic so stage screens have values.
+                src = BUILTIN_PLANTS["generic"]
                 self._recipe_draft = {
                     "mode": "add",
-                    "label": f"{src.label} Custom",
+                    "label": "My Crop",
+                    "stages": ["Seedling", "Vegetative", "Harvest"],
+                    "recipes": {
+                        k: v.as_dict()
+                        for k, v in src.recipes.items()
+                        if k in ("Seedling", "Vegetative", "Harvest")
+                    },
+                }
+                return await self.async_step_recipe_plant()
+            if action == "edit":
+                if not custom_ids:
+                    return self.async_show_form(
+                        step_id="recipes",
+                        data_schema=self._recipes_schema(customs, builtin_ids),
+                        errors={"base": "no_custom"},
+                    )
+                return await self.async_step_recipe_pick_edit()
+            if action == "delete":
+                if not custom_ids:
+                    return self.async_show_form(
+                        step_id="recipes",
+                        data_schema=self._recipes_schema(customs, builtin_ids),
+                        errors={"base": "no_custom"},
+                    )
+                return await self.async_step_recipe_pick_delete()
+            return await self.async_step_init()
+
+        return self.async_show_form(
+            step_id="recipes",
+            data_schema=self._recipes_schema(customs, builtin_ids),
+        )
+
+    def _recipes_schema(self, customs: dict, builtin_ids: list[str]) -> vol.Schema:
+        return vol.Schema(
+            {
+                vol.Required("action", default="from_template"): vol.In(
+                    {
+                        "from_template": "Create from template (recommended)",
+                        "blank": "Create blank plant",
+                        "edit": "Edit my custom plant",
+                        "delete": "Delete my custom plant",
+                        "back": "Back",
+                    }
+                ),
+            }
+        )
+
+    async def async_step_recipe_from_template(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """One-screen create: pick template + name → save."""
+        errors: dict[str, str] = {}
+        builtin_ids = [
+            p for p in ("lettuce", "basil", "spinach", "kale", "strawberry", "tomato", "generic")
+        ]
+        if user_input is not None:
+            label = str(user_input["label"]).strip()
+            src_id = str(user_input["template"])
+            if not label:
+                errors["base"] = "name_required"
+            elif src_id not in BUILTIN_PLANTS:
+                errors["base"] = "stages_required"
+            else:
+                src = BUILTIN_PLANTS[src_id]
+                plant_id = f"custom_{_slug(label)}"
+                # Avoid clobbering an existing custom id
+                customs = load_custom_recipes(
+                    self.config_entry.options.get(CONF_CUSTOM_RECIPES)
+                )
+                if plant_id in customs:
+                    plant_id = f"custom_{_slug(label)}_{len(customs)+1}"
+                plant_data = {
+                    "plant_id": plant_id,
+                    "label": label,
                     "stages": list(src.stages),
                     "recipes": {k: v.as_dict() for k, v in src.recipes.items()},
                 }
-                return await self.async_step_recipe_plant()
-            if action == "delete" and user_input.get("custom_plant"):
-                pid = user_input["custom_plant"]
-                customs.pop(pid, None)
-                opts = dict(self.config_entry.options)
-                opts[CONF_CUSTOM_RECIPES] = serialize_custom_recipes(customs)
-                if opts.get("plant_id") == pid:
-                    opts["plant_id"] = "generic"
-                    opts["auto_stage"] = False
-                    opts["sow_date"] = None
-                return self.async_create_entry(title="", data=opts)
-            return await self.async_step_init()
+                plant, err = validate_custom_plant(plant_data)
+                if err or plant is None:
+                    errors["base"] = "recipe_invalid"
+                    self._recipe_draft["last_error"] = err or "Validation failed"
+                else:
+                    customs[plant.plant_id] = plant
+                    opts = dict(self.config_entry.options)
+                    opts[CONF_CUSTOM_RECIPES] = serialize_custom_recipes(customs)
+                    return self.async_create_entry(title="", data=opts)
 
-        schema_dict: dict[Any, Any] = {
-            vol.Required("action", default="add"): vol.In(
-                {
-                    "add": "Add custom plant",
-                    "edit": "Edit custom plant",
-                    "copy": "Copy built-in plant",
-                    "delete": "Delete custom plant",
-                    "back": "Back",
-                }
-            ),
-        }
-        if custom_ids:
-            schema_dict[vol.Optional("custom_plant")] = vol.In(
-                {pid: customs[pid].label for pid in custom_ids}
-            )
-        schema_dict[vol.Optional("builtin_plant", default="lettuce")] = vol.In(
-            {pid: BUILTIN_PLANTS[pid].label for pid in builtin_ids}
+        hint = (
+            self._recipe_draft.get("last_error")
+            if errors
+            else "Copies all stage targets (pH, EC, lights, irrigation). You can edit later."
+        )
+        schema = vol.Schema(
+            {
+                vol.Required("template", default="lettuce"): vol.In(
+                    {pid: BUILTIN_PLANTS[pid].label for pid in builtin_ids}
+                ),
+                vol.Required("label", default="My Lettuce"): str,
+            }
         )
         return self.async_show_form(
-            step_id="recipes", data_schema=vol.Schema(schema_dict)
+            step_id="recipe_from_template",
+            data_schema=schema,
+            errors=errors,
+            description_placeholders={"hint": hint or ""},
         )
+
+    async def async_step_recipe_pick_edit(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        customs = load_custom_recipes(self.config_entry.options.get(CONF_CUSTOM_RECIPES))
+        if user_input is not None:
+            pid = user_input["custom_plant"]
+            plant = customs[pid]
+            self._recipe_draft = {
+                "mode": "edit",
+                "plant_id": plant.plant_id,
+                "label": plant.label,
+                "stages": list(plant.stages),
+                "recipes": {k: v.as_dict() for k, v in plant.recipes.items()},
+            }
+            self._stage_index = 0
+            return await self.async_step_recipe_stage()
+        schema = vol.Schema(
+            {
+                vol.Required("custom_plant"): vol.In(
+                    {pid: p.label for pid, p in customs.items()}
+                ),
+            }
+        )
+        return self.async_show_form(step_id="recipe_pick_edit", data_schema=schema)
+
+    async def async_step_recipe_pick_delete(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        customs = load_custom_recipes(self.config_entry.options.get(CONF_CUSTOM_RECIPES))
+        if user_input is not None:
+            pid = user_input["custom_plant"]
+            customs.pop(pid, None)
+            opts = dict(self.config_entry.options)
+            opts[CONF_CUSTOM_RECIPES] = serialize_custom_recipes(customs)
+            if opts.get("plant_id") == pid:
+                opts["plant_id"] = "generic"
+                opts["auto_stage"] = False
+                opts["sow_date"] = None
+            return self.async_create_entry(title="", data=opts)
+        schema = vol.Schema(
+            {
+                vol.Required("custom_plant"): vol.In(
+                    {pid: p.label for pid, p in customs.items()}
+                ),
+            }
+        )
+        return self.async_show_form(step_id="recipe_pick_delete", data_schema=schema)
 
     async def async_step_recipe_plant(
         self, user_input: dict[str, Any] | None = None
@@ -443,23 +548,29 @@ class HydroQOptionsFlow(config_entries.OptionsFlow):
         errors: dict[str, str] = {}
         if user_input is not None:
             label = str(user_input["label"]).strip()
-            stages = tuple(user_input["stages"])
+            stages = _coerce_stages(user_input.get("stages"))
             if not label:
                 errors["base"] = "name_required"
             elif not stages:
                 errors["base"] = "stages_required"
             else:
                 plant_id = self._recipe_draft.get("plant_id") or f"custom_{_slug(label)}"
-                if plant_id in BUILTIN_PLANTS and self._recipe_draft.get("mode") == "add":
+                if not str(plant_id).startswith("custom_"):
                     plant_id = f"custom_{_slug(label)}"
                 self._recipe_draft["label"] = label
                 self._recipe_draft["plant_id"] = plant_id
                 self._recipe_draft["stages"] = list(stages)
-                # Drop recipes for removed stages; keep existing for kept ones.
-                kept = {
-                    st: self._recipe_draft.get("recipes", {}).get(st, {})
-                    for st in stages
-                }
+                # Prefer existing stage data; fill missing from generic.
+                generic = BUILTIN_PLANTS["generic"].recipes
+                kept: dict[str, Any] = {}
+                for st in stages:
+                    existing = self._recipe_draft.get("recipes", {}).get(st)
+                    if isinstance(existing, dict) and existing:
+                        kept[st] = existing
+                    elif st in generic:
+                        kept[st] = generic[st].as_dict()
+                    else:
+                        kept[st] = {"stage": st}
                 self._recipe_draft["recipes"] = kept
                 self._stage_index = 0
                 return await self.async_step_recipe_stage()
@@ -528,6 +639,7 @@ class HydroQOptionsFlow(config_entries.OptionsFlow):
                 ),
             )
             self._recipe_draft.setdefault("recipes", {})[stage] = recipe.as_dict()
+            self._recipe_draft.pop("last_error", None)
             if idx + 1 < len(stages):
                 self._stage_index = idx + 1
                 return await self.async_step_recipe_stage()
@@ -590,6 +702,7 @@ class HydroQOptionsFlow(config_entries.OptionsFlow):
         return self.async_show_form(
             step_id="recipe_stage",
             data_schema=schema,
+            errors={"base": "recipe_invalid"} if self._recipe_draft.get("last_error") else None,
             description_placeholders={
                 "plant": self._recipe_draft.get("label", ""),
                 "stage": stage,
@@ -602,14 +715,18 @@ class HydroQOptionsFlow(config_entries.OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         plant_data = {
-            "plant_id": self._recipe_draft["plant_id"],
-            "label": self._recipe_draft["label"],
-            "stages": self._recipe_draft["stages"],
+            "plant_id": self._recipe_draft.get("plant_id")
+            or f"custom_{_slug(str(self._recipe_draft.get('label', 'crop')))}",
+            "label": self._recipe_draft.get("label", "My Crop"),
+            "stages": list(self._recipe_draft.get("stages") or []),
             "recipes": self._recipe_draft.get("recipes", {}),
         }
         plant, err = validate_custom_plant(plant_data)
         if err or plant is None:
-            return self.async_abort(reason="recipe_invalid")
+            self._recipe_draft["last_error"] = err or "Validation failed"
+            # Send user back to the first stage so values can be fixed.
+            self._stage_index = 0
+            return await self.async_step_recipe_stage()
 
         if user_input is not None:
             customs = load_custom_recipes(
@@ -620,12 +737,11 @@ class HydroQOptionsFlow(config_entries.OptionsFlow):
             opts[CONF_CUSTOM_RECIPES] = serialize_custom_recipes(customs)
             return self.async_create_entry(title="", data=opts)
 
+        summary = f"Save {plant.label} — stages: {', '.join(plant.stages)}?"
         return self.async_show_form(
             step_id="recipe_save",
             data_schema=vol.Schema({}),
-            description_placeholders={
-                "summary": f"{plant.label} — {', '.join(plant.stages)}",
-            },
+            description_placeholders={"summary": summary},
         )
 
     async def async_step_lighting(self, user_input: dict[str, Any] | None = None) -> FlowResult:

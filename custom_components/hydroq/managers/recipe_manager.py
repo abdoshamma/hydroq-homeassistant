@@ -133,6 +133,8 @@ class PlantDef:
         plant_id = str(data.get("plant_id") or _slug(str(data.get("label", "custom"))))
         label = str(data.get("label") or plant_id.replace("_", " ").title())
         stages_raw = data.get("stages") or list(GROWTH_STAGES)
+        if isinstance(stages_raw, str):
+            stages_raw = [stages_raw]
         stages = tuple(str(s) for s in stages_raw if str(s) in GROWTH_STAGES)
         if not stages:
             stages = ("Seedling", "Vegetative", "Harvest")
@@ -509,14 +511,38 @@ BUILTIN_PLANTS: dict[str, PlantDef] = {
 RECIPES: dict[str, Recipe] = dict(BUILTIN_PLANTS["generic"].recipes)
 
 
+def _coerce_stages(raw: Any) -> tuple[str, ...]:
+    """Normalize SelectSelector / list / single string into valid stage tuple."""
+    if raw is None:
+        return ()
+    if isinstance(raw, str):
+        items = [raw]
+    elif isinstance(raw, (list, tuple)):
+        items = list(raw)
+    else:
+        items = [str(raw)]
+    out: list[str] = []
+    for item in items:
+        s = str(item).strip()
+        if s in GROWTH_STAGES and s not in out:
+            out.append(s)
+    return tuple(out)
+
+
 def validate_custom_plant(data: dict[str, Any]) -> tuple[PlantDef | None, str | None]:
     """Return (plant, error)."""
     try:
+        data = dict(data)
+        if "stages" in data:
+            data["stages"] = list(_coerce_stages(data.get("stages")))
         plant = PlantDef.from_dict(data, builtin=False)
     except Exception as err:  # noqa: BLE001
         return None, str(err)
     if not plant.label.strip():
         return None, "Plant name required"
+    # Always force custom_ prefix so we never collide with built-ins.
+    if not plant.plant_id.startswith("custom_"):
+        plant.plant_id = f"custom_{_slug(plant.plant_id or plant.label)}"
     if plant.plant_id in BUILTIN_PLANT_IDS:
         return None, "Cannot overwrite a built-in plant id"
     if not plant.stages:
@@ -526,9 +552,13 @@ def validate_custom_plant(data: dict[str, Any]) -> tuple[PlantDef | None, str | 
             return None, f"Missing recipe for {st}"
         r = plant.recipes[st]
         if not (4.0 <= r.desired_ph <= 9.0):
-            return None, f"{st}: pH out of range"
-        if not (0.1 <= r.desired_ec <= 5.0):
-            return None, f"{st}: EC out of range"
+            return None, f"{st}: pH out of range (use 4.0–9.0)"
+        if not (0.05 <= r.desired_ec <= 6.0):
+            return None, f"{st}: EC out of range (use 0.05–6.0 mS/cm)"
+        if r.ph_tolerance < 0 or r.ph_tolerance > 2:
+            return None, f"{st}: pH tolerance out of range"
+        if r.ec_tolerance < 0 or r.ec_tolerance > 2:
+            return None, f"{st}: EC tolerance out of range"
     return plant, None
 
 
