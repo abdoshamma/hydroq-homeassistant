@@ -23,7 +23,9 @@
         "description": "Confirm sensor and actuator bindings. For lights, pick switches from the controller and/or HydroQ Grow Lights board.",
         "data": {
           "ph": "pH sensor",
+          "ph_raw": "pH ADC voltage (V)",
           "tds": "TDS sensor",
+          "tds_raw": "TDS ADC voltage (V)",
           "ec": "EC sensor",
           "do": "Dissolved oxygen (mg/L)",
           "do_raw": "DO probe voltage (V)",

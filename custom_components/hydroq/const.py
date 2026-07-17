@@ -4,7 +4,7 @@ from __future__ import annotations
 
 DOMAIN = "hydroq"
 MANUFACTURER = "HydroQ"
-VERSION = "1.9.20"
+VERSION = "1.9.21"
 CONFIG_VERSION = 2
 
 # Platform names as strings — avoids importing homeassistant at module load (unit tests).
@@ -44,7 +44,9 @@ SCHEDULE_SLOT_COUNT = 5
 
 # Legacy entity-map keys (config flow mapping UX)
 EM_PH = "ph"
+EM_PH_RAW = "ph_raw"
 EM_TDS = "tds"
+EM_TDS_RAW = "tds_raw"
 EM_EC = "ec"
 EM_DO = "do"
 EM_DO_RAW = "do_raw"

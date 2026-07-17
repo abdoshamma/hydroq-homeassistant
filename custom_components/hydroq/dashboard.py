@@ -110,7 +110,9 @@ HQ_KEYS = (
 
 HAL_SENSOR_ROLES = (
     "ph",
+    "ph_raw",
     "tds",
+    "tds_raw",
     "ec",
     "do",
     "do_raw",

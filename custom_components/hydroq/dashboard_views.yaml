@@ -1671,6 +1671,12 @@ views:
                 icon: mdi:ph
                 primary_info: name
                 secondary_info: state
+              - type: custom:mushroom-entity-card
+                entity: __HAL.ph_raw__
+                name: pH ADC (V)
+                icon: mdi:flash
+                primary_info: name
+                secondary_info: state
               - type: custom:mushroom-template-card
                 primary: >-
                   {% set g = states('__HAL.cal_guide_ph__') %}
@@ -1723,6 +1729,12 @@ views:
                 entity: __HAL.tds__
                 name: Live TDS
                 icon: mdi:water
+                primary_info: name
+                secondary_info: state
+              - type: custom:mushroom-entity-card
+                entity: __HAL.tds_raw__
+                name: TDS ADC (V)
+                icon: mdi:flash
                 primary_info: name
                 secondary_info: state
               - type: custom:mushroom-template-card

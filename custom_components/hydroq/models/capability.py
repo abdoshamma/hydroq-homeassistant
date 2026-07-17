@@ -25,7 +25,9 @@ class ChannelRole(StrEnum):
 
 class SensorRole(StrEnum):
     PH = "ph"
+    PH_RAW = "ph_raw"
     TDS = "tds"
+    TDS_RAW = "tds_raw"
     EC = "ec"
     DO = "do"
     DO_RAW = "do_raw"
@@ -150,7 +152,9 @@ _LEGACY_ACTUATOR = {
 }
 _LEGACY_SENSOR = {
     "ph": SensorRole.PH,
+    "ph_raw": SensorRole.PH_RAW,
     "tds": SensorRole.TDS,
+    "tds_raw": SensorRole.TDS_RAW,
     "ec": SensorRole.EC,
     "do": SensorRole.DO,
     "do_raw": SensorRole.DO_RAW,

@@ -31,12 +31,14 @@ from ..const import (
     EM_IRRIGATION,
     EM_LIGHTS,
     EM_PH,
+    EM_PH_RAW,
     EM_PUMP_A,
     EM_PUMP_B,
     EM_PUMP_C,
     EM_PUMP_NEUTRAL,
     EM_PUMP_PH,
     EM_TDS,
+    EM_TDS_RAW,
     EM_WATER_LEVEL,
     EM_WATER_TEMP,
     PROFILE_A,
@@ -45,7 +47,9 @@ from ..const import (
 
 _HINTS: dict[str, tuple[str, ...]] = {
     EM_PH: ("ph_value", "ph value", "_ph"),
+    EM_PH_RAW: ("ph_adc", "ph raw", "ph_raw"),
     EM_TDS: ("tds_value", "tds value", "_tds"),
+    EM_TDS_RAW: ("tds_adc", "tds raw", "tds_raw"),
     EM_EC: ("ec_value", "ec value", "_ec"),
     EM_DO: ("dissolved_oxygen", "dissolved oxygen", "do_sensor", "do_value"),
     EM_DO_RAW: ("do_raw", "do raw"),
@@ -162,6 +166,10 @@ def suggest_entity_map(
                 hay = f"{ent.entity_id} {ent.original_name or ''}".lower()
                 if role == EM_DO and "do_raw" in hay:
                     continue
+                if role == EM_PH and ("ph_adc" in hay or "ph_raw" in hay):
+                    continue
+                if role == EM_TDS and ("tds_adc" in hay or "tds_raw" in hay):
+                    continue
                 if role == EM_CO2 and (
                     "eco2" in hay or "equivalent" in hay or "voc" in hay
                 ):
@@ -186,7 +194,9 @@ def suggest_entity_map(
 
     for role, domains in (
         (EM_PH, ("sensor",)),
+        (EM_PH_RAW, ("sensor",)),
         (EM_TDS, ("sensor",)),
+        (EM_TDS_RAW, ("sensor",)),
         (EM_EC, ("sensor",)),
         (EM_DO, ("sensor",)),
         (EM_DO_RAW, ("sensor",)),
