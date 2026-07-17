@@ -324,10 +324,10 @@ views:
           - type: custom:flex-horseshoe-card
             entities:
               - entity: __HAL.iaq__
-                decimals: 1
-                unit: ""
+                decimals: 0
+                unit: IAQ
                 name: Air quality
-                area: higher = cleaner
+                area: 0–50 excellent
             show:
               horseshoe_style: colorstopgradient
             layout:
@@ -354,18 +354,20 @@ views:
                     - font-size: 0.95em;
                     - opacity: 0.75;
             horseshoe_scale:
-              min: 5
-              max: 20
+              min: 0
+              max: 500
               width: 6
             horseshoe_state:
               width: 12
             color_stops:
-              "5": "#c0392b"
-              "9": "#e67e22"
-              "11": "#d4a017"
-              "12": "#27ae60"
-              "14": "#27ae60"
-              "20": "#2980b9"
+              "0": "#27ae60"
+              "50": "#27ae60"
+              "100": "#2ecc71"
+              "150": "#d4a017"
+              "200": "#e67e22"
+              "250": "#c0392b"
+              "350": "#8e1b1b"
+              "500": "#5c0a0a"
             tap_action:
               action: more-info
             grid_options:
