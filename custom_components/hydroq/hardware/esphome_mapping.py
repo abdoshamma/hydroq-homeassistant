@@ -8,6 +8,10 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 
 from ..const import (
+    EM_AIR_HUMIDITY,
+    EM_AIR_PRESSURE,
+    EM_AIR_TEMP,
+    EM_BVOC,
     EM_CAL_DO,
     EM_CAL_PH_ACID,
     EM_CAL_PH_NEUTRAL,
@@ -16,7 +20,9 @@ from ..const import (
     EM_DO,
     EM_DO_RAW,
     EM_EC,
+    EM_ECO2,
     EM_ESTOP,
+    EM_IAQ,
     EM_IRRIGATION,
     EM_LIGHTS,
     EM_PH,
@@ -41,7 +47,13 @@ _HINTS: dict[str, tuple[str, ...]] = {
     EM_WATER_TEMP: ("water_temperature", "water_temp"),
     EM_WATER_LEVEL: ("water_level",),
     EM_ESTOP: ("emergency_stop_active", "emergency_stop"),
-    EM_CO2: ("_co2", "co2"),
+    EM_CO2: ("_co2", " co2", "co2"),
+    EM_IAQ: ("_iaq", " iaq", "iaq"),
+    EM_AIR_PRESSURE: ("air_pressure", "air pressure"),
+    EM_AIR_HUMIDITY: ("canopy_humidity", "canopy humidity"),
+    EM_AIR_TEMP: ("canopy_temperature", "canopy temperature"),
+    EM_ECO2: ("eco2", "co2_equivalent", "voc_est", "voc est"),
+    EM_BVOC: ("bvoc", "breath_voc", "breath voc"),
     EM_IRRIGATION: ("irrigation_pump",),
     EM_PUMP_A: ("solution_a_pump",),
     EM_PUMP_B: ("solution_b_pump",),
@@ -140,6 +152,12 @@ def suggest_entity_map(
                 hay = f"{ent.entity_id} {ent.original_name or ''}".lower()
                 if role == EM_DO and "do_raw" in hay:
                     continue
+                if role == EM_CO2 and (
+                    "eco2" in hay or "equivalent" in hay or "voc" in hay
+                ):
+                    continue
+                if role == EM_IAQ and ("accuracy" in hay or "class" in hay):
+                    continue
                 if role in (EM_PUMP_A, EM_PUMP_B, EM_PUMP_C, EM_PUMP_PH, EM_PUMP_NEUTRAL):
                     if domain == "number" and "control" in hay:
                         continue
@@ -165,6 +183,13 @@ def suggest_entity_map(
         (EM_WATER_TEMP, ("sensor",)),
         (EM_WATER_LEVEL, ("binary_sensor",)),
         (EM_ESTOP, ("binary_sensor",)),
+        (EM_CO2, ("sensor",)),
+        (EM_IAQ, ("sensor",)),
+        (EM_AIR_PRESSURE, ("sensor",)),
+        (EM_AIR_HUMIDITY, ("sensor",)),
+        (EM_AIR_TEMP, ("sensor",)),
+        (EM_ECO2, ("sensor",)),
+        (EM_BVOC, ("sensor",)),
         (EM_IRRIGATION, ("switch",)),
         (EM_PUMP_A, ("fan", "number")),
         (EM_PUMP_B, ("fan", "number")),

@@ -116,6 +116,12 @@ HAL_SENSOR_ROLES = (
     "water_level",
     "emergency_stop",
     "co2",
+    "iaq",
+    "air_pressure",
+    "air_humidity",
+    "air_temp",
+    "eco2",
+    "bvoc",
 )
 HAL_ACTUATOR_ROLES = (
     ChannelRole.NUTRIENT_A.value,

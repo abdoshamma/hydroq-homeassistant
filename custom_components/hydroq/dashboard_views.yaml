@@ -321,12 +321,76 @@ views:
             grid_options:
               columns: 6
               rows: 4
+          - type: custom:flex-horseshoe-card
+            entities:
+              - entity: __HAL.iaq__
+                decimals: 0
+                unit: IAQ
+                name: Air quality
+                area: 0–50 excellent
+            show:
+              horseshoe_style: colorstopgradient
+            layout:
+              states:
+                - id: 0
+                  entity_index: 0
+                  xpos: 50
+                  ypos: 58
+                  styles:
+                    - font-size: 2.6em;
+              names:
+                - id: 0
+                  entity_index: 0
+                  xpos: 50
+                  ypos: 92
+                  styles:
+                    - font-size: 1.1em;
+              areas:
+                - id: 0
+                  entity_index: 0
+                  xpos: 50
+                  ypos: 28
+                  styles:
+                    - font-size: 0.95em;
+                    - opacity: 0.75;
+            horseshoe_scale:
+              min: 0
+              max: 500
+              width: 6
+            horseshoe_state:
+              width: 12
+            color_stops:
+              "0": "#27ae60"
+              "50": "#27ae60"
+              "100": "#2ecc71"
+              "150": "#d4a017"
+              "200": "#e67e22"
+              "250": "#c0392b"
+              "350": "#8e1b1b"
+              "500": "#5c0a0a"
+            tap_action:
+              action: more-info
+            grid_options:
+              columns: 6
+              rows: 4
           - type: tile
             entity: __HAL.co2__
             name: Air CO₂
             icon: mdi:molecule-co2
             grid_options:
               columns: 6
+          - type: tile
+            entity: __HAL.air_pressure__
+            name: Pressure
+            icon: mdi:gauge
+            grid_options:
+              columns: 3
+          - type: tile
+            entity: __HAL.air_humidity__
+            name: Canopy RH
+            icon: mdi:water-percent
+            grid_options:
+              columns: 3
           - type: tile
             entity: __HQ.tds_factor__
             name: TDS scale

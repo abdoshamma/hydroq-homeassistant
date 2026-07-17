@@ -33,6 +33,12 @@ class SensorRole(StrEnum):
     WATER_LEVEL = "water_level"
     ESTOP = "emergency_stop"
     CO2 = "co2"
+    IAQ = "iaq"
+    AIR_PRESSURE = "air_pressure"
+    AIR_HUMIDITY = "air_humidity"
+    AIR_TEMP = "air_temp"
+    ECO2 = "eco2"
+    BVOC = "bvoc"
 
 
 @dataclass
@@ -148,6 +154,12 @@ _LEGACY_SENSOR = {
     "water_level": SensorRole.WATER_LEVEL,
     "emergency_stop": SensorRole.ESTOP,
     "co2": SensorRole.CO2,
+    "iaq": SensorRole.IAQ,
+    "air_pressure": SensorRole.AIR_PRESSURE,
+    "air_humidity": SensorRole.AIR_HUMIDITY,
+    "air_temp": SensorRole.AIR_TEMP,
+    "eco2": SensorRole.ECO2,
+    "bvoc": SensorRole.BVOC,
 }
 
 
