@@ -33,6 +33,7 @@ HQ_KEYS = (
     "dosing_state",
     "last_event",
     "last_error",
+    "alarm_message",
     "last_cal_ph",
     "last_cal_tds",
     "last_cal_do",

@@ -31,7 +31,7 @@ views:
         show_state: true
         show_icon: true
       - type: entity
-        entity: __HQ.active_alarm__
+        entity: __HQ.alarm_message__
         name: Alarm
         show_name: true
         show_state: true
@@ -59,8 +59,8 @@ views:
                 state: "on"
             card:
               type: custom:mushroom-template-card
-              primary: Active alarm — action required
-              secondary: "{{ states('__HQ.last_error__') }}"
+              primary: "{{ states('__HQ.alarm_message__') }}"
+              secondary: Action required — open Alarms
               icon: mdi:alert-octagon
               icon_color: red
               layout: horizontal
@@ -1482,7 +1482,7 @@ views:
     icon: mdi:alarm-light
     badges:
       - type: entity
-        entity: __HQ.active_alarm__
+        entity: __HQ.alarm_message__
         name: Alarm
         show_name: true
         show_state: true
@@ -1510,8 +1510,8 @@ views:
                 state: "on"
             card:
               type: custom:mushroom-template-card
-              primary: Alarm active
-              secondary: "{{ states('__HQ.last_error__') }}"
+              primary: "{{ states('__HQ.alarm_message__') }}"
+              secondary: Resolve below, then confirm water / e-stop are clear
               icon: mdi:alert-octagon
               icon_color: red
               layout: horizontal
@@ -1525,7 +1525,7 @@ views:
             card:
               type: custom:mushroom-template-card
               primary: System clear
-              secondary: No active HydroQ alarms
+              secondary: "{{ states('__HQ.alarm_message__') }}"
               icon: mdi:shield-check
               icon_color: green
               layout: horizontal
@@ -1536,6 +1536,10 @@ views:
             heading: Safety
             heading_style: title
             icon: mdi:shield-alert
+          - type: tile
+            entity: __HQ.alarm_message__
+            name: Active problem
+            icon: mdi:text-box-outline
           - type: tile
             entity: __HQ.active_alarm__
             name: HydroQ alarm
@@ -1877,7 +1881,7 @@ views:
             name: Water OK
             icon: mdi:water-check
           - type: tile
-            entity: __HQ.active_alarm__
+            entity: __HQ.alarm_message__
             name: Alarm
             icon: mdi:alarm-light
           - type: tile

@@ -16,13 +16,23 @@ class AlarmManager:
         self.ec_tolerance = 50.0
         self._last: dict[str, datetime] = {}
         self.warnings: list[str] = []
+        self.messages: list[str] = []
         self.active = False
         self.refill_requested = False
+
+    @property
+    def message(self) -> str:
+        """Human-readable active problems, or Clear."""
+        if not self.messages:
+            return "Clear"
+        return " · ".join(self.messages)
 
     def snapshot(self) -> dict:
         return {
             "active": self.active,
             "warnings": list(self.warnings),
+            "messages": list(self.messages),
+            "message": self.message,
             "refill_requested": self.refill_requested,
         }
 
@@ -37,14 +47,17 @@ class AlarmManager:
     def evaluate(self, safety: SafetyReading) -> list[DomainEvent]:
         events: list[DomainEvent] = []
         warnings: list[str] = []
+        messages: list[str] = []
         if safety.estop_active:
             warnings.append("emergency_stop")
+            messages.append("Emergency stop active")
             if self._cool("estop"):
                 events.append(
                     DomainEvent("alarm.estop", "Emergency stop active", "error", process="safety")
                 )
         if not safety.water_ok:
             warnings.append("tank_empty")
+            messages.append("Tank empty — refill reservoir")
             self.refill_requested = True
             if self._cool("water"):
                 events.append(
@@ -52,27 +65,28 @@ class AlarmManager:
                 )
         if safety.ph is not None and abs(safety.ph - self.desired_ph) > self.ph_tolerance:
             warnings.append("ph_out_of_range")
+            msg = (
+                f"pH {safety.ph:.2f} out of range "
+                f"(target {self.desired_ph:.1f} ± {self.ph_tolerance:.1f})"
+            )
+            messages.append(msg)
             if self._cool("ph"):
                 events.append(
-                    DomainEvent(
-                        "alarm.ph_range",
-                        f"pH {safety.ph:.2f} out of range",
-                        "warning",
-                        process="dosing",
-                    )
+                    DomainEvent("alarm.ph_range", msg, "warning", process="dosing")
                 )
         if safety.tds is not None and abs(safety.tds - self.desired_tds) > self.ec_tolerance:
             warnings.append("ec_out_of_range")
+            msg = (
+                f"TDS {safety.tds:.0f} out of range "
+                f"(target {self.desired_tds:.0f} ± {self.ec_tolerance:.0f})"
+            )
+            messages.append(msg)
             if self._cool("ec"):
                 events.append(
-                    DomainEvent(
-                        "alarm.ec_range",
-                        f"TDS {safety.tds:.0f} out of range",
-                        "warning",
-                        process="dosing",
-                    )
+                    DomainEvent("alarm.ec_range", msg, "warning", process="dosing")
                 )
         self.warnings = warnings
+        self.messages = messages
         self.active = bool(warnings)
         return events
 

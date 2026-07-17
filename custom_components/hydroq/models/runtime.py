@@ -82,6 +82,7 @@ class PublicSnapshot:
     last_event: str | None = None
     warnings: list[str] = field(default_factory=list)
     active_alarm: bool = False
+    alarm_message: str = "Clear"
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -116,4 +117,5 @@ class PublicSnapshot:
             "last_event": self.last_event,
             "warnings": list(self.warnings),
             "active_alarm": self.active_alarm,
+            "alarm_message": self.alarm_message,
         }

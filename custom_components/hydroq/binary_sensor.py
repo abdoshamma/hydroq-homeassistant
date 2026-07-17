@@ -48,6 +48,15 @@ class HydroQFlag(HydroQEntity, BinarySensorEntity):
     def is_on(self) -> bool:
         return bool(self.coordinator.data.get(self._key))
 
+    @property
+    def extra_state_attributes(self) -> dict | None:
+        if self._key != "active_alarm":
+            return None
+        return {
+            "message": self.coordinator.data.get("alarm_message", "Clear"),
+            "warnings": list(self.coordinator.data.get("warnings") or []),
+        }
+
 
 class HydroQProcessActive(HydroQEntity, BinarySensorEntity):
     _attr_device_class = BinarySensorDeviceClass.RUNNING

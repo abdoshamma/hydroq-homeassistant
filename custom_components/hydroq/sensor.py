@@ -23,6 +23,7 @@ async def async_setup_entry(
         HydroQTextSensor(c, "dosing_state", "Dosing State"),
         HydroQTextSensor(c, "last_event", "Last Event"),
         HydroQTextSensor(c, "last_error", "Last Error"),
+        HydroQTextSensor(c, "alarm_message", "Alarm Message"),
         HydroQTextSensor(c, "last_cal_ph", "Last pH Calibration"),
         HydroQTextSensor(c, "last_cal_tds", "Last TDS Calibration"),
         HydroQTextSensor(c, "last_cal_do", "Last DO Calibration"),

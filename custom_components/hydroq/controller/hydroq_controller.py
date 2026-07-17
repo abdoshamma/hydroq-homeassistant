@@ -947,6 +947,7 @@ class HydroQController:
             last_event=self.events.last_message,
             warnings=list(self.alarms.warnings),
             active_alarm=self.alarms.active,
+            alarm_message=self.alarms.message,
         )
         return snap
 
