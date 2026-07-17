@@ -30,7 +30,7 @@
           "water_temp": "Water temperature",
           "water_level": "Water level",
           "emergency_stop": "Emergency stop",
-          "co2": "CO₂ (SCD true ppm)",
+          "co2": "CO₂ (optional — not on this board)",
           "iaq": "IAQ index (BME680)",
           "air_pressure": "Air pressure",
           "air_humidity": "Canopy humidity (BME680)",

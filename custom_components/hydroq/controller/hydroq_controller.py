@@ -73,6 +73,7 @@ class HydroQController:
         self._balance_task: asyncio.Task | None = None
         self._cal_warn_day: str | None = None
         self._stage_advance_day: str | None = None
+        self._parked_for_safety = False
 
         self.scheduler.set_callback(self._on_tick)
         self.scheduler.start()
@@ -345,8 +346,10 @@ class HydroQController:
         # Empty tank stops pumps only — lights stay under lighting manager (not water-gated).
         if not safety.actuators_allowed:
             reason = safety.reason or "safety"
+            need_park = not self._parked_for_safety
             if self._balance_task and not self._balance_task.done():
                 self._balance_task.cancel()
+                need_park = True
             if self.irrigation.fsm.busy:
                 events += await self.irrigation.stop(reason)
                 events.append(
@@ -357,6 +360,7 @@ class HydroQController:
                         process="irrigation",
                     )
                 )
+                need_park = True
             if self.dosing.fsm.busy:
                 events += await self.dosing.stop(reason)
                 events.append(
@@ -367,12 +371,18 @@ class HydroQController:
                         process="dosing",
                     )
                 )
-            await self.device.stop_all_actuators(include_lights=False)
+                need_park = True
+            # Park once while blocked — avoid re-writing 0 every tick (log spam)
+            if need_park:
+                await self.device.stop_all_actuators(include_lights=False)
+                self._parked_for_safety = True
             if safety.estop_active:
                 events += await self.lighting.set_all(False, stagger_s=0.0)
-            else:
+            elif self.system_mode in ("Semi-Auto", "Full-Auto"):
                 events += await self.lighting.tick_auto(now, estop=False)
             return events
+
+        self._parked_for_safety = False
 
         if self.system_mode == "Maintenance":
             return events

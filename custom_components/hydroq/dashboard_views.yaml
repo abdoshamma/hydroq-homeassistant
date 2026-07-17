@@ -374,9 +374,9 @@ views:
               columns: 6
               rows: 4
           - type: tile
-            entity: __HAL.co2__
-            name: Air CO₂
-            icon: mdi:molecule-co2
+            entity: __HAL.air_temp__
+            name: Canopy °C
+            icon: mdi:thermometer
             grid_options:
               columns: 6
           - type: tile
@@ -1957,9 +1957,9 @@ views:
             name: Water temp
             icon: mdi:thermometer-water
           - type: tile
-            entity: __HAL.co2__
-            name: CO₂
-            icon: mdi:molecule-co2
+            entity: __HAL.air_temp__
+            name: Canopy °C
+            icon: mdi:thermometer
 
       - type: grid
         column_span: 4
@@ -2020,10 +2020,10 @@ views:
               average: true
               state: true
           - type: custom:mini-graph-card
-            name: CO₂
+            name: IAQ
             entities:
-              - entity: __HAL.co2__
-                name: ppm
+              - entity: __HAL.iaq__
+                name: IAQ
             hours_to_show: 168
             points_per_hour: 1
             line_width: 2

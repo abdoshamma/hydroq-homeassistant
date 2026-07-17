@@ -4,7 +4,7 @@ from __future__ import annotations
 
 DOMAIN = "hydroq"
 MANUFACTURER = "HydroQ"
-VERSION = "1.9.14"
+VERSION = "1.9.16"
 CONFIG_VERSION = 2
 
 # Platform names as strings — avoids importing homeassistant at module load (unit tests).
@@ -89,7 +89,7 @@ MAX_DOSING_SECONDS = 600
 DOSING_PULSE_ON_S = 5
 DOSING_PULSE_OFF_S = 5
 SCHEDULER_TICK_S = 15
-UPDATE_INTERVAL_S = 30
+UPDATE_INTERVAL_S = 15
 DEFAULT_MAX_DOSE_ML_DAY = 500.0
 DOSING_LIMIT_COOLDOWN_S = 120
 CONF_MAX_DOSE_ML_DAY = "max_dose_ml_day"

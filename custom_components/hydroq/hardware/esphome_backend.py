@@ -144,14 +144,22 @@ class EsphomeHAL(HardwareHAL):
     async def _write_percent(self, entity_id: str, pct: float) -> None:
         domain = entity_id.split(".", 1)[0]
         pct_i = int(round(pct))
+        st = self.hass.states.get(entity_id)
         try:
             if domain == "switch":
-                service = "turn_on" if pct_i > 0 else "turn_off"
+                desired = "on" if pct_i > 0 else "off"
+                if st is not None and st.state == desired:
+                    return
                 await self.hass.services.async_call(
-                    "switch", service, {"entity_id": entity_id}, blocking=True
+                    "switch",
+                    "turn_on" if desired == "on" else "turn_off",
+                    {"entity_id": entity_id},
+                    blocking=True,
                 )
             elif domain == "fan":
                 if pct_i <= 0:
+                    if st is not None and st.state == "off":
+                        return
                     await self.hass.services.async_call(
                         "fan", "turn_off", {"entity_id": entity_id}, blocking=True
                     )
@@ -163,7 +171,13 @@ class EsphomeHAL(HardwareHAL):
                         blocking=True,
                     )
             elif domain == "number":
-                # Never call number.turn_off — that service does not exist
+                # Skip no-op set_value (empty-tank park was spamming ESPHome every tick)
+                if st is not None:
+                    try:
+                        if abs(float(st.state) - float(pct_i)) < 0.5:
+                            return
+                    except (TypeError, ValueError):
+                        pass
                 await self.hass.services.async_call(
                     "number",
                     "set_value",
