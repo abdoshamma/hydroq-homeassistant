@@ -33,6 +33,19 @@ class HardwareHAL(ABC):
     async def press_button(self, cal_role: str) -> bool:
         """Press calibration button by cal role key."""
 
+    async def read_cal_result(self) -> str | None:
+        """Latest firmware Cal Result text, if available."""
+        return None
+
+    async def wait_cal_result(
+        self, kind: str, *, before: str | None, timeout_s: float = 2.5
+    ) -> str | None:
+        """Wait for firmware cal result.
+
+        Returns 'ok', 'fail:…', or None if unknown/timeout.
+        """
+        return None
+
     @abstractmethod
     def diagnostics(self) -> dict[str, Any]:
         """Backend-specific diagnostic blob."""

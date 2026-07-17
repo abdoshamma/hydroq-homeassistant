@@ -74,6 +74,59 @@ class EsphomeHAL(HardwareHAL):
         )
         return True
 
+    def _cal_result_entity(self) -> str | None:
+        ch = self.capabilities.sensors.get("cal_result")
+        if ch and ch.entity_id:
+            return ch.entity_id
+        # Fallback: same ESPHome device as any mapped cal button
+        for eid in self.capabilities.cal_buttons.values():
+            twin = self._find_named_on_device(eid, "cal_result")
+            if twin:
+                return twin
+        return None
+
+    def _find_named_on_device(self, entity_id: str, needle: str) -> str | None:
+        registry = er.async_get(self.hass)
+        primary = registry.async_get(entity_id)
+        if primary is None or not primary.device_id:
+            return None
+        for ent in registry.entities.values():
+            if ent.device_id != primary.device_id or ent.disabled:
+                continue
+            hay = f"{ent.entity_id} {ent.original_name or ''}".lower()
+            if needle in hay.replace(" ", "_"):
+                return ent.entity_id
+        return None
+
+    async def read_cal_result(self) -> str | None:
+        eid = self._cal_result_entity()
+        if not eid:
+            return None
+        st = self.hass.states.get(eid)
+        return None if st is None else str(st.state)
+
+    async def wait_cal_result(
+        self, kind: str, *, before: str | None, timeout_s: float = 2.5
+    ) -> str | None:
+        eid = self._cal_result_entity()
+        if not eid:
+            return None
+        prefix = f"{kind}:"
+        deadline = asyncio.get_running_loop().time() + max(0.5, timeout_s)
+        while asyncio.get_running_loop().time() < deadline:
+            st = self.hass.states.get(eid)
+            cur = None if st is None else str(st.state)
+            if cur and cur != before and cur.startswith(prefix):
+                body = cur.split("#", 1)[0]  # strip millis uniqueness
+                # body = "tds:ok" or "tds:fail:unstable"
+                rest = body[len(prefix) :]
+                if rest.startswith("ok"):
+                    return "ok"
+                if rest.startswith("fail"):
+                    return rest  # fail:unstable
+            await asyncio.sleep(0.15)
+        return None
+
     def diagnostics(self) -> dict[str, Any]:
         avail: dict[str, Any] = {}
         for role, s in self.capabilities.sensors.items():

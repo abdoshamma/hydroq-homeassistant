@@ -99,7 +99,17 @@ class MockHAL(HardwareHAL):
 
     async def press_button(self, cal_role: str) -> bool:
         _LOGGER.info("MockHAL calibrate %s", cal_role)
+        self._values["cal_result"] = f"{cal_role}:ok#mock"
         return True
+
+    async def read_cal_result(self) -> str | None:
+        val = self._values.get("cal_result")
+        return None if val is None else str(val)
+
+    async def wait_cal_result(
+        self, kind: str, *, before: str | None, timeout_s: float = 2.5
+    ) -> str | None:
+        return "ok"
 
     def set_sim(self, role: str, value: float | str) -> None:
         self._values[role] = value

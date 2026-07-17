@@ -42,6 +42,7 @@ class SensorRole(StrEnum):
     CAL_GUIDE_PH = "cal_guide_ph"
     CAL_GUIDE_TDS = "cal_guide_tds"
     CAL_GUIDE_DO = "cal_guide_do"
+    CAL_RESULT = "cal_result"
 
 
 @dataclass
@@ -166,6 +167,7 @@ _LEGACY_SENSOR = {
     "cal_guide_ph": SensorRole.CAL_GUIDE_PH,
     "cal_guide_tds": SensorRole.CAL_GUIDE_TDS,
     "cal_guide_do": SensorRole.CAL_GUIDE_DO,
+    "cal_result": SensorRole.CAL_RESULT,
 }
 
 

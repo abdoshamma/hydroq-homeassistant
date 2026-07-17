@@ -1672,7 +1672,9 @@ views:
                 primary_info: name
                 secondary_info: state
               - type: custom:mushroom-template-card
-                primary: "{{ states('__HAL.cal_guide_ph__') }}"
+                primary: >-
+                  {% set g = states('__HAL.cal_guide_ph__') %}
+                  {{ g if g not in ['unknown','unavailable','none',''] else 'Map pH Cal Guide (reconfigure HydroQ)' }}
                 secondary: Follow steps — wait for Ready
                 icon: mdi:clipboard-text
                 icon_color: amber
@@ -1724,7 +1726,9 @@ views:
                 primary_info: name
                 secondary_info: state
               - type: custom:mushroom-template-card
-                primary: "{{ states('__HAL.cal_guide_tds__') }}"
+                primary: >-
+                  {% set g = states('__HAL.cal_guide_tds__') %}
+                  {{ g if g not in ['unknown','unavailable','none',''] else 'Map TDS Cal Guide (reconfigure HydroQ)' }}
                 secondary: Use 707 ppm standard ~25°C
                 icon: mdi:clipboard-text
                 icon_color: amber
@@ -1759,7 +1763,9 @@ views:
                 primary_info: name
                 secondary_info: state
               - type: custom:mushroom-template-card
-                primary: "{{ states('__HAL.cal_guide_do__') }}"
+                primary: >-
+                  {% set g = states('__HAL.cal_guide_do__') %}
+                  {{ g if g not in ['unknown','unavailable','none',''] else 'Map DO Cal Guide (reconfigure HydroQ)' }}
                 secondary: Dry tip in air
                 icon: mdi:clipboard-text
                 icon_color: amber

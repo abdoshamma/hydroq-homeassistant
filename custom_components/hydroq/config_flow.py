@@ -205,6 +205,7 @@ class HydroQConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 "cal_guide_ph": user_input.get("cal_guide_ph"),
                 "cal_guide_tds": user_input.get("cal_guide_tds"),
                 "cal_guide_do": user_input.get("cal_guide_do"),
+                "cal_result": user_input.get("cal_result"),
             }
             if lights:
                 emap["lights"] = lights
@@ -251,6 +252,7 @@ class HydroQConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             ("cal_guide_ph", entity_sel),
             ("cal_guide_tds", entity_sel),
             ("cal_guide_do", entity_sel),
+            ("cal_result", entity_sel),
         ):
             marker, field_sel = _field(key, sel)
             schema_dict[marker] = field_sel

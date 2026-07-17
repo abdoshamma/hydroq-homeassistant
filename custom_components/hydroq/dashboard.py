@@ -15,7 +15,7 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.storage import Store
 
 from .const import CONF_CAPABILITIES, CONF_CONTROLLER_DEVICE_ID, CONF_ENTITY_MAP, CONF_LIGHT_STAND_COUNT, CONF_SIMULATION, DOMAIN
-from .hardware.esphome_mapping import order_light_entities
+from .hardware.esphome_mapping import _HINTS, order_light_entities
 from .models.capability import CapabilityMap, ChannelRole
 
 _LOGGER = logging.getLogger(__name__)
@@ -127,6 +127,7 @@ HAL_SENSOR_ROLES = (
     "cal_guide_ph",
     "cal_guide_tds",
     "cal_guide_do",
+    "cal_result",
 )
 HAL_ACTUATOR_ROLES = (
     ChannelRole.NUTRIENT_A.value,
@@ -453,6 +454,13 @@ def _collect_replacements(hass: HomeAssistant) -> dict[str, str]:
                 eid = caps.sensors[role].entity_id
             elif emap.get(role):
                 eid = emap.get(role)
+            if not _ok(eid):
+                eid = _suggest_sensor_role(
+                    hass,
+                    role,
+                    entry.data.get(CONF_CONTROLLER_DEVICE_ID),
+                    known_ok=_ok,
+                )
             if _ok(eid):
                 out[f"__HAL.{role}__"] = eid  # type: ignore[arg-type]
 
@@ -493,6 +501,30 @@ def _collect_replacements(hass: HomeAssistant) -> dict[str, str]:
         sum(1 for k in out if k.startswith("__HAL.")),
     )
     return out
+
+
+def _suggest_sensor_role(
+    hass: HomeAssistant,
+    role: str,
+    device_id: str | None,
+    *,
+    known_ok,
+) -> str | None:
+    """Find an ESPHome entity for a newly added HAL role (e.g. cal guides)."""
+    hints = _HINTS.get(role, ())
+    if not hints:
+        return None
+    registry = er.async_get(hass)
+    for ent in registry.entities.values():
+        if ent.disabled_by or (device_id and ent.device_id != device_id):
+            continue
+        hay = f"{ent.entity_id} {ent.original_name or ''}".lower().replace("-", "_")
+        if any(h.replace(" ", "_") in hay for h in hints) and known_ok(ent.entity_id):
+            return ent.entity_id
+    # Last resort: ignore device filter (single-controller installs)
+    if device_id:
+        return _suggest_sensor_role(hass, role, None, known_ok=known_ok)
+    return None
 
 
 def _prune_empty_entities(obj: Any) -> Any:

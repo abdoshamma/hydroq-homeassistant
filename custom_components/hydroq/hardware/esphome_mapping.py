@@ -19,6 +19,7 @@ from ..const import (
     EM_CAL_PH_ACID,
     EM_CAL_PH_AUTO,
     EM_CAL_PH_NEUTRAL,
+    EM_CAL_RESULT,
     EM_CAL_TDS,
     EM_CO2,
     EM_DO,
@@ -72,6 +73,7 @@ _HINTS: dict[str, tuple[str, ...]] = {
     EM_CAL_GUIDE_PH: ("ph_cal_guide",),
     EM_CAL_GUIDE_TDS: ("tds_cal_guide",),
     EM_CAL_GUIDE_DO: ("do_cal_guide",),
+    EM_CAL_RESULT: ("cal_result",),
 }
 
 _STAND_RE = re.compile(r"(?:grow[_ ]?)?light[_ ]stand[_ ]?(\d+)", re.I)
@@ -212,6 +214,7 @@ def suggest_entity_map(
         (EM_CAL_GUIDE_PH, ("sensor",)),
         (EM_CAL_GUIDE_TDS, ("sensor",)),
         (EM_CAL_GUIDE_DO, ("sensor",)),
+        (EM_CAL_RESULT, ("sensor",)),
     ):
         ph_up_preset = profile in (PROFILE_A, "profile_a", "preset_gen1_ph_up")
         if ph_up_preset and role == EM_PUMP_NEUTRAL:

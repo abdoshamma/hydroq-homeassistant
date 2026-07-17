@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 
 from ..controller.events import DomainEvent
 from ..hardware.hal import HardwareHAL
-from ..process.calibration_fsm import CalibrationFSM, CalibrationState
+from ..process.calibration_fsm import CalibrationFSM
 
 
 class CalibrationManager:
@@ -47,13 +47,36 @@ class CalibrationManager:
             return [DomainEvent("calibration.rejected", "Invalid calibration state", "warning")]
 
         self.fsm.begin_sample()
+        before = await self.hal.read_cal_result()
         ok = await self.hal.press_button(cal_role)
         if not ok:
             self.fsm.fault("button_unavailable")
             self.fsm.reset_to_idle()
             return [DomainEvent("calibration.fault", "Button unavailable", "error")]
 
-        self.fsm.store_ok()
+        outcome = await self.hal.wait_cal_result(kind, before=before, timeout_s=2.5)
+        self.fsm.reset_to_idle()
+        if outcome is None:
+            return [
+                DomainEvent(
+                    "calibration.unconfirmed",
+                    f"{kind} cal pressed but firmware result not confirmed — date not updated",
+                    "warning",
+                    process="calibration",
+                )
+            ]
+        if outcome.startswith("fail"):
+            reason = outcome.split(":", 1)[-1] if ":" in outcome else outcome
+            return [
+                DomainEvent(
+                    "calibration.rejected",
+                    f"{kind} calibration rejected ({reason})",
+                    "warning",
+                    process="calibration",
+                    data={"kind": kind, "point": point, "reason": reason},
+                )
+            ]
+
         now = datetime.now(timezone.utc)
         if kind == "ph":
             self.last_ph = now
@@ -61,9 +84,6 @@ class CalibrationManager:
             self.last_tds = now
         else:
             self.last_do = now
-
-        if self.fsm.state == CalibrationState.COMPLETE:
-            self.fsm.reset_to_idle()
 
         return [
             DomainEvent(
