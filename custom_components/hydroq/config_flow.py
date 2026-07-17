@@ -199,8 +199,12 @@ class HydroQConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 "neutralization": user_input.get("neutralization"),
                 "cal_ph_neutral": user_input.get("cal_ph_neutral"),
                 "cal_ph_acid": user_input.get("cal_ph_acid"),
+                "cal_ph_auto": user_input.get("cal_ph_auto"),
                 "cal_tds": user_input.get("cal_tds"),
                 "cal_do": user_input.get("cal_do"),
+                "cal_guide_ph": user_input.get("cal_guide_ph"),
+                "cal_guide_tds": user_input.get("cal_guide_tds"),
+                "cal_guide_do": user_input.get("cal_guide_do"),
             }
             if lights:
                 emap["lights"] = lights
@@ -241,8 +245,12 @@ class HydroQConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             ("ph_pump", entity_sel),
             ("cal_ph_neutral", button_sel),
             ("cal_ph_acid", button_sel),
+            ("cal_ph_auto", button_sel),
             ("cal_tds", button_sel),
             ("cal_do", button_sel),
+            ("cal_guide_ph", entity_sel),
+            ("cal_guide_tds", entity_sel),
+            ("cal_guide_do", entity_sel),
         ):
             marker, field_sel = _field(key, sel)
             schema_dict[marker] = field_sel

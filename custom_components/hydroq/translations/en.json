@@ -46,8 +46,12 @@
           "lights": "Grow light stands",
           "cal_ph_neutral": "Calibrate pH neutral button",
           "cal_ph_acid": "Calibrate pH acid button",
+          "cal_ph_auto": "Calibrate pH auto-detect button",
           "cal_tds": "Calibrate TDS button",
-          "cal_do": "Calibrate DO button"
+          "cal_do": "Calibrate DO button",
+          "cal_guide_ph": "pH calibration guide",
+          "cal_guide_tds": "TDS calibration guide",
+          "cal_guide_do": "DO calibration guide"
         }
       },
       "reservoir": {

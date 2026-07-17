@@ -4,7 +4,7 @@ from __future__ import annotations
 
 DOMAIN = "hydroq"
 MANUFACTURER = "HydroQ"
-VERSION = "1.9.17"
+VERSION = "1.9.18"
 CONFIG_VERSION = 2
 
 # Platform names as strings — avoids importing homeassistant at module load (unit tests).
@@ -67,8 +67,12 @@ EM_PUMP_NEUTRAL = "neutralization"
 EM_LIGHTS = "lights"
 EM_CAL_PH_NEUTRAL = "cal_ph_neutral"
 EM_CAL_PH_ACID = "cal_ph_acid"
+EM_CAL_PH_AUTO = "cal_ph_auto"
 EM_CAL_TDS = "cal_tds"
 EM_CAL_DO = "cal_do"
+EM_CAL_GUIDE_PH = "cal_guide_ph"
+EM_CAL_GUIDE_TDS = "cal_guide_tds"
+EM_CAL_GUIDE_DO = "cal_guide_do"
 
 PRESET_GEN1_PH_UP = "preset_gen1_ph_up"  # was profile_a
 PRESET_GEN1_NEUTRAL = "preset_gen1_neutral"  # was profile_b

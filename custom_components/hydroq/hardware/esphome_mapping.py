@@ -13,7 +13,11 @@ from ..const import (
     EM_AIR_TEMP,
     EM_BVOC,
     EM_CAL_DO,
+    EM_CAL_GUIDE_DO,
+    EM_CAL_GUIDE_PH,
+    EM_CAL_GUIDE_TDS,
     EM_CAL_PH_ACID,
+    EM_CAL_PH_AUTO,
     EM_CAL_PH_NEUTRAL,
     EM_CAL_TDS,
     EM_CO2,
@@ -62,8 +66,12 @@ _HINTS: dict[str, tuple[str, ...]] = {
     EM_PUMP_NEUTRAL: ("neutralization_pump",),
     EM_CAL_PH_NEUTRAL: ("calibrate_ph_6", "calibrate_ph_7"),
     EM_CAL_PH_ACID: ("calibrate_ph_4",),
+    EM_CAL_PH_AUTO: ("calibrate_ph_auto", "ph_auto"),
     EM_CAL_TDS: ("calibrate_tds",),
     EM_CAL_DO: ("do_air_calibration", "calibrate_do"),
+    EM_CAL_GUIDE_PH: ("ph_cal_guide",),
+    EM_CAL_GUIDE_TDS: ("tds_cal_guide",),
+    EM_CAL_GUIDE_DO: ("do_cal_guide",),
 }
 
 _STAND_RE = re.compile(r"(?:grow[_ ]?)?light[_ ]stand[_ ]?(\d+)", re.I)
@@ -198,8 +206,12 @@ def suggest_entity_map(
         (EM_PUMP_NEUTRAL, ("fan", "number")),
         (EM_CAL_PH_NEUTRAL, ("button",)),
         (EM_CAL_PH_ACID, ("button",)),
+        (EM_CAL_PH_AUTO, ("button",)),
         (EM_CAL_TDS, ("button",)),
         (EM_CAL_DO, ("button",)),
+        (EM_CAL_GUIDE_PH, ("sensor",)),
+        (EM_CAL_GUIDE_TDS, ("sensor",)),
+        (EM_CAL_GUIDE_DO, ("sensor",)),
     ):
         ph_up_preset = profile in (PROFILE_A, "profile_a", "preset_gen1_ph_up")
         if ph_up_preset and role == EM_PUMP_NEUTRAL:

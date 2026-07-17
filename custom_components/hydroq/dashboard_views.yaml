@@ -1663,7 +1663,7 @@ views:
             heading_style: title
             icon: mdi:flask-outline
           - type: custom:vertical-stack-in-card
-            title: pH probe
+            title: pH wizard
             cards:
               - type: custom:mushroom-entity-card
                 entity: __HAL.ph__
@@ -1672,9 +1672,27 @@ views:
                 primary_info: name
                 secondary_info: state
               - type: custom:mushroom-template-card
-                primary: Calibrate neutral
-                icon: mdi:flask
+                primary: "{{ states('__HAL.cal_guide_ph__') }}"
+                secondary: Follow steps — wait for Ready
+                icon: mdi:clipboard-text
+                icon_color: amber
+                layout: horizontal
+              - type: custom:mushroom-template-card
+                primary: Save detected buffer
+                secondary: Auto 6.86 or 4.0 when Ready
+                icon: mdi:auto-fix
                 icon_color: green
+                layout: horizontal
+                tap_action:
+                  action: call-service
+                  service: button.press
+                  target:
+                    entity_id: __HQ.cal_ph_auto__
+              - type: custom:mushroom-template-card
+                primary: Save 6.86
+                secondary: Only when guide says 6.86 Ready
+                icon: mdi:numeric-7-circle
+                icon_color: teal
                 layout: horizontal
                 tap_action:
                   action: call-service
@@ -1682,8 +1700,9 @@ views:
                   target:
                     entity_id: __HQ.cal_ph_neutral__
               - type: custom:mushroom-template-card
-                primary: Calibrate acid
-                icon: mdi:flask
+                primary: Save 4.0
+                secondary: Only when guide says 4.0 Ready
+                icon: mdi:numeric-4-circle
                 icon_color: blue
                 layout: horizontal
                 tap_action:
@@ -1696,7 +1715,7 @@ views:
                 name: Last pH cal
                 layout: horizontal
           - type: custom:vertical-stack-in-card
-            title: EC / TDS probe
+            title: EC / TDS wizard
             cards:
               - type: custom:mushroom-entity-card
                 entity: __HAL.tds__
@@ -1704,6 +1723,12 @@ views:
                 icon: mdi:water
                 primary_info: name
                 secondary_info: state
+              - type: custom:mushroom-template-card
+                primary: "{{ states('__HAL.cal_guide_tds__') }}"
+                secondary: Use 707 ppm standard ~25°C
+                icon: mdi:clipboard-text
+                icon_color: amber
+                layout: horizontal
               - type: custom:mushroom-template-card
                 primary: Calibrate EC / TDS
                 icon: mdi:flask-outline
@@ -1719,7 +1744,7 @@ views:
                 name: Last TDS cal
                 layout: horizontal
           - type: custom:vertical-stack-in-card
-            title: Dissolved oxygen
+            title: DO wizard
             cards:
               - type: custom:mushroom-entity-card
                 entity: __HAL.do__
@@ -1733,6 +1758,12 @@ views:
                 icon: mdi:flash
                 primary_info: name
                 secondary_info: state
+              - type: custom:mushroom-template-card
+                primary: "{{ states('__HAL.cal_guide_do__') }}"
+                secondary: Dry tip in air
+                icon: mdi:clipboard-text
+                icon_color: amber
+                layout: horizontal
               - type: custom:mushroom-template-card
                 primary: Air calibration
                 icon: mdi:air-filter
@@ -1819,9 +1850,10 @@ views:
             icon: mdi:clipboard-list
           - type: markdown
             content: |
-              **pH** — rinse → 6.86/7.0 buffer → Cal → rinse → 4.0 buffer → Cal.
-              **TDS** — clean probe → **707 ppm** standard (~1413 µS/cm) near 25°C → Calibrate EC/TDS.
-              **DO** — fill/membrane OK → dry tip → hold in air → Air calibration.
+              **pH** — follow guide text → wait for **Ready** → **Save detected** (6.86 then 4.0).
+              Rejects unstable / wrong-buffer samples.
+              **TDS** — 707 ppm ~25°C → wait Ready → Calibrate.
+              **DO** — dry tip in air → wait Ready → Air calibration.
 
   # ─── 8. SYSTEM (diagnostics + trends) ──────────────────────────────────────
   - type: sections

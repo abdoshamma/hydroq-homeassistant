@@ -33,6 +33,7 @@ async def async_setup_entry(
         ("emergency_stop", "Emergency Stop", CommandType.EMERGENCY_STOP, {}),
         ("cal_ph_neutral", "Calibrate pH Neutral", CommandType.CALIBRATE, {"kind": "ph", "point": "neutral"}),
         ("cal_ph_acid", "Calibrate pH Acid", CommandType.CALIBRATE, {"kind": "ph", "point": "acid"}),
+        ("cal_ph_auto", "Calibrate pH Auto", CommandType.CALIBRATE, {"kind": "ph", "point": "auto"}),
         ("cal_ec", "Calibrate EC", CommandType.CALIBRATE, {"kind": "tds", "point": "std"}),
         ("cal_do", "Calibrate DO", CommandType.CALIBRATE, {"kind": "do", "point": "air"}),
         ("request_refill", "Request Refill", CommandType.REQUEST_REFILL, {}),

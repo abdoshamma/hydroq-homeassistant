@@ -39,6 +39,9 @@ class SensorRole(StrEnum):
     AIR_TEMP = "air_temp"
     ECO2 = "eco2"
     BVOC = "bvoc"
+    CAL_GUIDE_PH = "cal_guide_ph"
+    CAL_GUIDE_TDS = "cal_guide_tds"
+    CAL_GUIDE_DO = "cal_guide_do"
 
 
 @dataclass
@@ -160,6 +163,9 @@ _LEGACY_SENSOR = {
     "air_temp": SensorRole.AIR_TEMP,
     "eco2": SensorRole.ECO2,
     "bvoc": SensorRole.BVOC,
+    "cal_guide_ph": SensorRole.CAL_GUIDE_PH,
+    "cal_guide_tds": SensorRole.CAL_GUIDE_TDS,
+    "cal_guide_do": SensorRole.CAL_GUIDE_DO,
 }
 
 
@@ -195,6 +201,7 @@ def legacy_entity_map_to_capabilities(
     for key, role in (
         ("cal_ph_neutral", "ph_neutral"),
         ("cal_ph_acid", "ph_acid"),
+        ("cal_ph_auto", "ph_auto"),
         ("cal_tds", "tds"),
         ("cal_do", "do"),
     ):

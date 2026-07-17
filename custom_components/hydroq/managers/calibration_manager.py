@@ -33,6 +33,7 @@ class CalibrationManager:
             ("ph", "acid"): "ph_acid",
             ("ph", "6.86"): "ph_neutral",
             ("ph", "4.0"): "ph_acid",
+            ("ph", "auto"): "ph_auto",
             ("tds", "std"): "tds",
             ("do", "air"): "do",
         }.get((kind, point))

@@ -82,6 +82,7 @@ HQ_KEYS = (
     "emergency_stop",
     "cal_ph_neutral",
     "cal_ph_acid",
+    "cal_ph_auto",
     "cal_ec",
     "cal_do",
     "request_refill",
@@ -123,6 +124,9 @@ HAL_SENSOR_ROLES = (
     "air_temp",
     "eco2",
     "bvoc",
+    "cal_guide_ph",
+    "cal_guide_tds",
+    "cal_guide_do",
 )
 HAL_ACTUATOR_ROLES = (
     ChannelRole.NUTRIENT_A.value,
