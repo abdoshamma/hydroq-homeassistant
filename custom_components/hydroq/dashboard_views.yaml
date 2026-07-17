@@ -1240,24 +1240,18 @@ views:
             heading: Plant × stage
             heading_style: title
             icon: mdi:book-open-variant
-          - type: custom:mushroom-select-card
-            entity: __HQ.plant_id__
-            name: Plant
-            icon: mdi:leaf
-            primary_info: name
-            secondary_info: state
-          - type: custom:mushroom-select-card
-            entity: __HQ.growth_stage__
-            name: Growth stage
-            icon: mdi:sprout
-            primary_info: name
-            secondary_info: state
-          - type: custom:mushroom-select-card
-            entity: __HQ.system_mode__
-            name: System mode
-            icon: mdi:cog-outline
-            primary_info: name
-            secondary_info: state
+          - type: entities
+            show_header_toggle: false
+            entities:
+              - entity: __HQ.plant_id__
+                name: Plant
+                icon: mdi:leaf
+              - entity: __HQ.growth_stage__
+                name: Growth stage
+                icon: mdi:sprout
+              - entity: __HQ.system_mode__
+                name: System mode
+                icon: mdi:cog-outline
           - type: markdown
             content: >
               **Plant + stage** loads researched pH, EC, lights, and irrigation defaults.
