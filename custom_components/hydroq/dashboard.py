@@ -77,9 +77,18 @@ HQ_KEYS = (
     "test_pump_b",
     "test_pump_c",
     "test_ph_pump",
+    "test_ph_down",
     "test_irrigation",
     "stop_dosing",
     "emergency_stop",
+    "dose_ml_today",
+    "dose_ml_budget",
+    "stock_ml",
+    "stock_days_left",
+    "probe_health",
+    "offline_mode",
+    "offline_hours_left",
+    "last_cal_result",
     "cal_ph_neutral",
     "cal_ph_acid",
     "cal_ph_auto",
@@ -118,7 +127,10 @@ HAL_SENSOR_ROLES = (
     "do_raw",
     "water_temp",
     "water_level",
+    "water_level_secondary",
     "emergency_stop",
+    "leak",
+    "flow_ok",
     "co2",
     "iaq",
     "air_pressure",
@@ -146,6 +158,7 @@ _LEGACY_ACTUATOR = {
     ChannelRole.NUTRIENT_B.value: "solution_b",
     ChannelRole.NUTRIENT_C.value: "solution_c",
     ChannelRole.PH_UP.value: "ph_pump",
+    ChannelRole.PH_DOWN.value: "ph_down",
     ChannelRole.NEUTRALIZATION.value: "neutralization",
     ChannelRole.IRRIGATION.value: "irrigation_pump",
 }
@@ -308,8 +321,9 @@ async def _async_write_views_config(hass: HomeAssistant) -> None:
 
 
 def _build_zones_overview(hass: HomeAssistant) -> dict[str, Any] | None:
-    """First-tab overview when 2+ HydroQ zones are installed."""
+    """Farm tab — health strip for every installed HydroQ zone (Stage 5)."""
     cards: list[dict[str, Any]] = []
+    strip: list[dict[str, Any]] = []
     registry = er.async_get(hass)
     zones = 0
     for entry_id, coordinator in list(hass.data.get(DOMAIN, {}).items()):
@@ -322,12 +336,43 @@ def _build_zones_overview(hass: HomeAssistant) -> dict[str, Any] | None:
         name = getattr(coordinator, "zone_name", None) or entry.title or "Zone"
         prefix = f"{entry.entry_id}_"
         found: dict[str, str] = {}
+        want = (
+            "status",
+            "health",
+            "water_ok",
+            "active_alarm",
+            "alarm_message",
+            "growth_stage",
+            "irrigation_state",
+            "offline_mode",
+            "probe_health",
+        )
         for ent in registry.entities.values():
             if ent.platform != DOMAIN or not (ent.unique_id or "").startswith(prefix):
                 continue
             key = (ent.unique_id or "")[len(prefix) :]
-            if key in ("status", "health", "water_ok", "active_alarm", "growth_stage", "irrigation_active"):
+            if key in want:
                 found[key] = ent.entity_id
+
+        # Compact strip badges (top of Farm)
+        for key, label in (
+            ("status", f"{name}"),
+            ("health", f"{name} health"),
+            ("active_alarm", f"{name} alarm"),
+        ):
+            eid = found.get(key)
+            if eid:
+                strip.append(
+                    {
+                        "type": "entity",
+                        "entity": eid,
+                        "name": label,
+                        "show_name": True,
+                        "show_state": True,
+                        "show_icon": True,
+                    }
+                )
+
         stack: list[Any] = [
             {"type": "markdown", "content": f"### {name}"},
         ]
@@ -336,8 +381,11 @@ def _build_zones_overview(hass: HomeAssistant) -> dict[str, Any] | None:
             ("health", "Health"),
             ("water_ok", "Water OK"),
             ("active_alarm", "Alarm"),
+            ("alarm_message", "Alarm msg"),
             ("growth_stage", "Stage"),
-            ("irrigation_active", "Irrigation"),
+            ("irrigation_state", "Irrigation"),
+            ("offline_mode", "Offline"),
+            ("probe_health", "Probes"),
         ):
             eid = found.get(key)
             if not eid:
@@ -352,39 +400,49 @@ def _build_zones_overview(hass: HomeAssistant) -> dict[str, Any] | None:
             )
         cards.append({"type": "custom:vertical-stack-in-card", "cards": stack})
 
-    if zones < 2:
+    if zones < 1:
         return None
-    return {
+
+    sections: list[dict[str, Any]] = [
+        {
+            "type": "grid",
+            "column_span": 4,
+            "cards": [
+                {
+                    "type": "heading",
+                    "heading": f"Farm · {zones} zone{'s' if zones != 1 else ''}",
+                    "heading_style": "title",
+                    "icon": "mdi:barn",
+                },
+                {
+                    "type": "markdown",
+                    "content": (
+                        "Health strip across all HydroQ zones. "
+                        "Per-zone operator detail stays on **Overview** (primary zone entities). "
+                        "Export a support bundle via **Developer Tools → Services → `hydroq.export_support_bundle`**."
+                    ),
+                },
+                {
+                    "type": "grid",
+                    "columns": min(2, max(1, zones)),
+                    "square": False,
+                    "cards": cards,
+                },
+            ],
+        }
+    ]
+
+    view: dict[str, Any] = {
         "type": "sections",
-        "title": "Zones",
-        "path": "zones",
-        "icon": "mdi:view-dashboard-variant",
+        "title": "Farm",
+        "path": "farm",
+        "icon": "mdi:barn",
         "max_columns": 4,
-        "sections": [
-            {
-                "type": "grid",
-                "column_span": 4,
-                "cards": [
-                    {
-                        "type": "heading",
-                        "heading": "All zones",
-                        "heading_style": "title",
-                        "icon": "mdi:sprout",
-                    },
-                    {
-                        "type": "markdown",
-                        "content": "Each card is one HydroQ zone. Open **Overview** for the primary operator view.",
-                    },
-                    {
-                        "type": "grid",
-                        "columns": 2,
-                        "square": False,
-                        "cards": cards,
-                    },
-                ],
-            }
-        ],
+        "sections": sections,
     }
+    if strip:
+        view["badges"] = strip
+    return view
 
 
 def _load_and_resolve_template(replacements: dict[str, str]) -> dict[str, Any] | None:

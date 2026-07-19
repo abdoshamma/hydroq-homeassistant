@@ -4,7 +4,7 @@ from __future__ import annotations
 
 DOMAIN = "hydroq"
 MANUFACTURER = "HydroQ"
-VERSION = "1.9.21"
+VERSION = "1.9.26"
 CONFIG_VERSION = 2
 
 # Platform names as strings — avoids importing homeassistant at module load (unit tests).
@@ -52,7 +52,10 @@ EM_DO = "do"
 EM_DO_RAW = "do_raw"
 EM_WATER_TEMP = "water_temp"
 EM_WATER_LEVEL = "water_level"
+EM_WATER_LEVEL_SECONDARY = "water_level_secondary"
 EM_ESTOP = "emergency_stop"
+EM_LEAK = "leak"
+EM_FLOW_OK = "flow_ok"
 EM_CO2 = "co2"
 EM_IAQ = "iaq"
 EM_AIR_PRESSURE = "air_pressure"
@@ -65,6 +68,7 @@ EM_PUMP_A = "solution_a"
 EM_PUMP_B = "solution_b"
 EM_PUMP_C = "solution_c"
 EM_PUMP_PH = "ph_pump"
+EM_PUMP_PH_DOWN = "ph_down"
 EM_PUMP_NEUTRAL = "neutralization"
 EM_LIGHTS = "lights"
 EM_CAL_PH_NEUTRAL = "cal_ph_neutral"
@@ -83,6 +87,8 @@ PROFILE_A = PRESET_GEN1_PH_UP  # back-compat alias
 PROFILE_B = PRESET_GEN1_NEUTRAL
 
 LEVEL_BINARY = "binary"
+LEVEL_DUAL_BINARY = "dual_binary"
+# Legacy install option (removed Stage 1) — migrated to binary on load
 LEVEL_ULTRASONIC = "ultrasonic"
 
 GROWTH_STAGES = ("Seedling", "Vegetative", "Flowering", "Harvest")
@@ -95,11 +101,14 @@ DEFAULT_TDS_TOLERANCE = 50
 MAX_DOSING_SECONDS = 600
 DOSING_PULSE_ON_S = 5
 DOSING_PULSE_OFF_S = 5
+PH_SETTLE_S = 12
+CAL_DUE_DAYS = 30
 SCHEDULER_TICK_S = 15
 UPDATE_INTERVAL_S = 15
 DEFAULT_MAX_DOSE_ML_DAY = 500.0
 DOSING_LIMIT_COOLDOWN_S = 120
 CONF_MAX_DOSE_ML_DAY = "max_dose_ml_day"
+CONF_STOCK_ML = "stock_ml"
 CONF_CUSTOM_RECIPES = "custom_recipes"
 CONF_TDS_FACTOR = "tds_factor"
 CONF_PLANT_ID = "plant_id"

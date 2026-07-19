@@ -26,6 +26,7 @@ from .const import (
     CONF_PUMP_ML_PER_MIN,
     CONF_SIMULATION,
     CONF_SOW_DATE,
+    CONF_STOCK_ML,
     CONF_TDS_FACTOR,
     CONF_ZONE_NAME,
     CONTROLLER_LIGHT_STANDS,
@@ -39,6 +40,7 @@ from .controller.commands import Command, CommandType
 from .controller.hydroq_controller import HydroQController
 from .hardware.esphome_backend import EsphomeHAL
 from .hardware.mock_backend import MockHAL
+from .hardware.offline_sync import async_sync_offline_schedule, read_offline_status
 from .models.capability import CapabilityMap, ChannelRole, legacy_entity_map_to_capabilities
 from .models.runtime import normalize_schedule
 
@@ -204,15 +206,48 @@ class HydroQCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.controller.dosing.max_ml_day = float(
             max_ml if max_ml is not None else DEFAULT_MAX_DOSE_ML_DAY
         )
+        stock = options.get(CONF_STOCK_ML)
+        if stock is None or float(stock or 0) <= 0:
+            self.controller.dosing.stock_ml = None
+        else:
+            self.controller.dosing.stock_ml = float(stock)
+
+        self._sync_offline_brain()
+
+    def _irrigation_entity_id(self) -> str | None:
+        ch = self.controller.hal.capabilities.actuators.get(ChannelRole.IRRIGATION.value)
+        return ch.entity_id if ch else None
+
+    async def _read_cal_result(self) -> str:
+        read = getattr(self.controller.hal, "read_cal_result", None)
+        if read is None:
+            return "—"
+        try:
+            val = await read()
+        except Exception:  # noqa: BLE001
+            return "—"
+        return str(val) if val else "—"
+
+    def _sync_offline_brain(self) -> None:
+        """Push last irrigation schedule to MCU NVS (Stage 3 offline brain)."""
+        if self.entry.data.get(CONF_SIMULATION):
+            return
+        self.hass.async_create_task(
+            async_sync_offline_schedule(
+                self.hass,
+                irrigation_entity_id=self._irrigation_entity_id(),
+                slots=list(self.controller.irrigation.schedule),
+            )
+        )
 
     def _persist_schedule(self) -> None:
         """Write current slots into config entry options (survives restart)."""
         slots = [s.as_dict() for s in self.controller.irrigation.schedule]
         opts = dict(self.entry.options)
-        if opts.get(CONF_IRRIGATION_SCHEDULE) == slots:
-            return
-        opts[CONF_IRRIGATION_SCHEDULE] = slots
-        self.hass.config_entries.async_update_entry(self.entry, options=opts)
+        if opts.get(CONF_IRRIGATION_SCHEDULE) != slots:
+            opts[CONF_IRRIGATION_SCHEDULE] = slots
+            self.hass.config_entries.async_update_entry(self.entry, options=opts)
+        self._sync_offline_brain()
 
     def _persist_calibration(self) -> None:
         snap = self.controller.calibration.snapshot()
@@ -268,6 +303,16 @@ class HydroQCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         data["last_cal_ph"] = self._fmt_cal(cal.get("last_ph"))
         data["last_cal_tds"] = self._fmt_cal(cal.get("last_tds"))
         data["last_cal_do"] = self._fmt_cal(cal.get("last_do"))
+        dose = self.controller.dosing.snapshot()
+        data["dose_ml_today"] = dose.get("ml_today")
+        data["dose_ml_budget"] = dose.get("max_ml_day")
+        data["stock_ml"] = dose.get("stock_ml")
+        data["stock_days_left"] = dose.get("stock_days_left")
+        data["probe_health"] = self._probe_health(data)
+        offline = read_offline_status(self.hass, self._irrigation_entity_id())
+        data["offline_mode"] = offline.get("offline_mode", "unknown")
+        data["offline_hours_left"] = offline.get("offline_hours_left")
+        data["last_cal_result"] = await self._read_cal_result()
         for i, slot in enumerate(self.controller.irrigation.schedule, start=1):
             data[f"sched_{i}_enabled"] = slot.enabled
             data[f"sched_{i}_hour"] = slot.hour
@@ -290,6 +335,19 @@ class HydroQCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             return str(iso)[:10]
         except Exception:  # noqa: BLE001
             return "Never"
+
+    @staticmethod
+    def _probe_health(data: dict[str, Any]) -> str:
+        warns = data.get("warnings") or []
+        if any(str(w).startswith("cal_") and str(w).endswith("_due") for w in warns):
+            return "cal_due"
+        if "probe_unstable" in warns or data.get("dosing_state") == "FAULT":
+            fault = None
+            # dosing fault reason not always in warnings
+            return "check"
+        if data.get("last_cal_ph") == "Never":
+            return "uncalibrated"
+        return "ok"
 
     def _read_lights_on(self) -> bool:
         last = self.controller.lighting._last_on

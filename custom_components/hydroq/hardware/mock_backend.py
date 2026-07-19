@@ -66,6 +66,9 @@ class MockHAL(HardwareHAL):
             SensorRole.WATER_TEMP.value: 22.0,
             SensorRole.WATER_LEVEL.value: "on",
             SensorRole.ESTOP.value: "off",
+            SensorRole.LEAK.value: "off",
+            SensorRole.FLOW_OK.value: "on",
+            SensorRole.WATER_LEVEL_SECONDARY.value: "on",
         }
         self._outputs: dict[str, float] = {}
         self._lights_on = False

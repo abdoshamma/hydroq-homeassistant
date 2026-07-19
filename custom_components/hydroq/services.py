@@ -120,6 +120,67 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         schema=vol.Schema({}),
     )
 
+    async def _export_support_bundle(_call: ServiceCall) -> None:
+        import json
+        from pathlib import Path
+
+        from homeassistant.components.diagnostics import async_redact_data
+        from homeassistant.components.persistent_notification import (
+            async_create as async_create_notification,
+        )
+
+        from .const import VERSION
+        from .fleet import build_support_bundle, slim_public
+
+        to_redact = {"api_key", "password", "token", "encryption_key"}
+        zones: list[dict] = []
+        for entry_id, coord in list(hass.data.get(DOMAIN, {}).items()):
+            if not isinstance(entry_id, str) or entry_id.startswith("_"):
+                continue
+            if not hasattr(coord, "controller"):
+                continue
+            zones.append(
+                {
+                    "entry_id": entry_id,
+                    "zone_name": getattr(coord, "zone_name", entry_id),
+                    "public": slim_public(getattr(coord, "data", None) or {}),
+                    "controller": async_redact_data(
+                        coord.controller.diagnostics_blob(), to_redact
+                    ),
+                    "entry": async_redact_data(
+                        dict(coord.entry.data), to_redact
+                    ),
+                    "options": dict(coord.entry.options),
+                }
+            )
+
+        try:
+            from homeassistant.const import __version__ as ha_ver
+        except Exception:  # noqa: BLE001
+            ha_ver = None
+
+        bundle = build_support_bundle(zones=zones, ha_version=ha_ver)
+        out = Path(hass.config.path("hydroq_support_bundle.json"))
+        out.write_text(json.dumps(bundle, indent=2, default=str), encoding="utf-8")
+        async_create_notification(
+            hass,
+            (
+                f"HydroQ support bundle written ({len(zones)} zone(s), v{VERSION}).\n\n"
+                f"File: `{out}`\n\n"
+                "Attach this file when contacting support. Secrets are redacted."
+            ),
+            title="HydroQ support bundle",
+            notification_id="hydroq_support_bundle",
+        )
+        _LOGGER.info("HydroQ support bundle → %s (%s zones)", out, len(zones))
+
+    hass.services.async_register(
+        DOMAIN,
+        "export_support_bundle",
+        _export_support_bundle,
+        schema=vol.Schema({}),
+    )
+
     _LOGGER.info("HydroQ services registered")
 
 

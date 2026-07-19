@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 
+from ..const import CAL_DUE_DAYS
 from ..controller.events import DomainEvent
 from ..managers.device_manager import SafetyReading
 
@@ -19,6 +20,10 @@ class AlarmManager:
         self.messages: list[str] = []
         self.active = False
         self.refill_requested = False
+        self._cal_due: list[str] = []
+
+    def set_cal_due(self, labels: list[str]) -> None:
+        self._cal_due = list(labels)
 
     @property
     def message(self) -> str:
@@ -55,6 +60,13 @@ class AlarmManager:
                 events.append(
                     DomainEvent("alarm.estop", "Emergency stop active", "error", process="safety")
                 )
+        if safety.leak_active:
+            warnings.append("leak")
+            messages.append("Leak detected — pumps stopped")
+            if self._cool("leak", minutes=5):
+                events.append(
+                    DomainEvent("alarm.leak", "Leak detected", "error", process="safety")
+                )
         if not safety.water_ok:
             warnings.append("tank_empty")
             messages.append("Tank empty — refill reservoir")
@@ -85,6 +97,10 @@ class AlarmManager:
                 events.append(
                     DomainEvent("alarm.ec_range", msg, "warning", process="dosing")
                 )
+        for label in self._cal_due:
+            key = f"cal_{label.lower()}_due"
+            warnings.append(key)
+            messages.append(f"{label} calibration overdue (≥{CAL_DUE_DAYS}d)")
         self.warnings = warnings
         self.messages = messages
         self.active = bool(warnings)

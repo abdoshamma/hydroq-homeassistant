@@ -20,7 +20,7 @@
       },
       "mapping": {
         "title": "Assign hardware",
-        "description": "Confirm sensor and actuator bindings. For lights, pick switches from the controller and/or HydroQ Grow Lights board.",
+        "description": "Confirm sensors and actuators for this board. Skip unused roles. CO₂ / VOC kits are not on the standard controller — leave unmapped.",
         "data": {
           "ph": "pH sensor",
           "ph_raw": "pH ADC voltage (V)",
@@ -30,20 +30,21 @@
           "do": "Dissolved oxygen (mg/L)",
           "do_raw": "DO probe voltage (V)",
           "water_temp": "Water temperature",
-          "water_level": "Water level",
+          "water_level": "Water level (primary)",
+          "water_level_secondary": "Water level (secondary)",
           "emergency_stop": "Emergency stop",
-          "co2": "CO₂ (optional — not on this board)",
+          "leak": "Leak detector",
+          "flow_ok": "Flow OK",
           "iaq": "IAQ index (BME680)",
           "air_pressure": "Air pressure",
           "air_humidity": "Canopy humidity (BME680)",
           "air_temp": "Canopy temperature (BME680)",
-          "eco2": "eCO₂ VOC estimate (not true CO₂)",
-          "bvoc": "bVOC equivalent",
           "irrigation_pump": "Irrigation pump",
           "solution_a": "Solution A pump",
           "solution_b": "Solution B pump",
           "solution_c": "Solution C pump",
-          "ph_pump": "pH pump",
+          "ph_pump": "pH Up pump",
+          "ph_down": "pH Down pump",
           "neutralization": "Neutralization pump",
           "lights": "Grow light stands",
           "cal_ph_neutral": "Calibrate pH neutral button",
@@ -58,9 +59,9 @@
         }
       },
       "reservoir": {
-        "title": "Reservoir & pumps",
+        "title": "Level & dosing rate",
+        "description": "Choose float style and set dosing pump rate. Map secondary level on the previous step when using dual float.",
         "data": {
-          "reservoir_volume_l": "Reservoir volume (L)",
           "level_sensor_type": "Level sensor type",
           "pump_ml_per_min": "Dosing pump rate (ml/min)",
           "simulation": "Simulation mode (no real hardware)"

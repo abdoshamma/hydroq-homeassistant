@@ -20,6 +20,7 @@ from .const import (
     CONF_LEVEL_SENSOR_TYPE,
     CONF_LIGHT_STAND_COUNT,
     CONF_MAX_DOSE_ML_DAY,
+    CONF_STOCK_ML,
     CONF_PUMP_ML_PER_MIN,
     CONF_RESERVOIR_VOLUME_L,
     CONF_SIMULATION,
@@ -31,6 +32,8 @@ from .const import (
     DOMAIN,
     GROWTH_STAGES,
     LEVEL_BINARY,
+    LEVEL_DUAL_BINARY,
+    LEVEL_ULTRASONIC,
     LIGHT_STAND_CHOICES,
     PROFILE_A,
     TDS_FACTOR_CHOICES,
@@ -185,19 +188,20 @@ class HydroQConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 "do_raw": user_input.get("do_raw"),
                 "water_temp": user_input.get("water_temp"),
                 "water_level": user_input.get("water_level"),
+                "water_level_secondary": user_input.get("water_level_secondary"),
                 "emergency_stop": user_input.get("emergency_stop"),
-                "co2": user_input.get("co2"),
+                "leak": user_input.get("leak"),
+                "flow_ok": user_input.get("flow_ok"),
                 "iaq": user_input.get("iaq"),
                 "air_pressure": user_input.get("air_pressure"),
                 "air_humidity": user_input.get("air_humidity"),
                 "air_temp": user_input.get("air_temp"),
-                "eco2": user_input.get("eco2"),
-                "bvoc": user_input.get("bvoc"),
                 "irrigation_pump": user_input.get("irrigation_pump"),
                 "solution_a": user_input.get("solution_a"),
                 "solution_b": user_input.get("solution_b"),
                 "solution_c": user_input.get("solution_c"),
                 "ph_pump": user_input.get("ph_pump"),
+                "ph_down": user_input.get("ph_down"),
                 "neutralization": user_input.get("neutralization"),
                 "cal_ph_neutral": user_input.get("cal_ph_neutral"),
                 "cal_ph_acid": user_input.get("cal_ph_acid"),
@@ -236,18 +240,19 @@ class HydroQConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             ("do_raw", entity_sel),
             ("water_temp", entity_sel),
             ("water_level", entity_sel),
+            ("water_level_secondary", entity_sel),
             ("emergency_stop", entity_sel),
-            ("co2", entity_sel),
+            ("leak", entity_sel),
+            ("flow_ok", entity_sel),
             ("iaq", entity_sel),
             ("air_pressure", entity_sel),
             ("air_humidity", entity_sel),
             ("air_temp", entity_sel),
-            ("eco2", entity_sel),
-            ("bvoc", entity_sel),
             ("irrigation_pump", entity_sel),
             ("solution_a", entity_sel),
             ("solution_b", entity_sel),
             ("ph_pump", entity_sel),
+            ("ph_down", entity_sel),
             ("cal_ph_neutral", button_sel),
             ("cal_ph_acid", button_sel),
             ("cal_ph_auto", button_sel),
@@ -283,17 +288,25 @@ class HydroQConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_reservoir(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         if user_input is not None:
-            self._data[CONF_RESERVOIR_VOLUME_L] = user_input[CONF_RESERVOIR_VOLUME_L]
-            self._data[CONF_LEVEL_SENSOR_TYPE] = user_input[CONF_LEVEL_SENSOR_TYPE]
+            level_type = user_input[CONF_LEVEL_SENSOR_TYPE]
+            if level_type == LEVEL_ULTRASONIC:
+                level_type = LEVEL_BINARY
+            # Volume kept for back-compat only (not used by dosing math yet)
+            self._data[CONF_RESERVOIR_VOLUME_L] = float(
+                self._data.get(CONF_RESERVOIR_VOLUME_L) or 100
+            )
+            self._data[CONF_LEVEL_SENSOR_TYPE] = level_type
             self._data[CONF_PUMP_ML_PER_MIN] = user_input[CONF_PUMP_ML_PER_MIN]
             self._data[CONF_SIMULATION] = bool(user_input.get(CONF_SIMULATION, False))
             return await self.async_step_frontend()
 
         schema = vol.Schema(
             {
-                vol.Required(CONF_RESERVOIR_VOLUME_L, default=100): vol.Coerce(float),
                 vol.Required(CONF_LEVEL_SENSOR_TYPE, default=LEVEL_BINARY): vol.In(
-                    {LEVEL_BINARY: "Binary float switch", "ultrasonic": "Ultrasonic"}
+                    {
+                        LEVEL_BINARY: "Binary float (primary)",
+                        LEVEL_DUAL_BINARY: "Dual float (primary + secondary)",
+                    }
                 ),
                 vol.Required(CONF_PUMP_ML_PER_MIN, default=50): vol.Coerce(float),
                 vol.Optional(CONF_SIMULATION, default=False): bool,
@@ -364,6 +377,7 @@ class HydroQOptionsFlow(config_entries.OptionsFlow):
                             "desired_tds",
                             "tds_tolerance",
                             CONF_MAX_DOSE_ML_DAY,
+                            CONF_STOCK_ML,
                         )
                     },
                     "desired_ph": user_input["desired_ph"],
@@ -371,6 +385,7 @@ class HydroQOptionsFlow(config_entries.OptionsFlow):
                     "desired_tds": user_input["desired_tds"],
                     "tds_tolerance": user_input["tds_tolerance"],
                     CONF_MAX_DOSE_ML_DAY: user_input[CONF_MAX_DOSE_ML_DAY],
+                    CONF_STOCK_ML: user_input.get(CONF_STOCK_ML) or None,
                 },
             )
 
@@ -392,6 +407,10 @@ class HydroQOptionsFlow(config_entries.OptionsFlow):
                 vol.Required(
                     CONF_MAX_DOSE_ML_DAY,
                     default=opts.get(CONF_MAX_DOSE_ML_DAY, DEFAULT_MAX_DOSE_ML_DAY),
+                ): vol.Coerce(float),
+                vol.Optional(
+                    CONF_STOCK_ML,
+                    default=opts.get(CONF_STOCK_ML, 0),
                 ): vol.Coerce(float),
                 vol.Optional("next", default="setpoints"): vol.In(
                     {

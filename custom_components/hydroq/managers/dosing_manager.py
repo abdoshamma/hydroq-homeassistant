@@ -20,6 +20,7 @@ from ..const import (
     DOSING_PULSE_OFF_S,
     DOSING_PULSE_ON_S,
     MAX_DOSING_SECONDS,
+    PH_SETTLE_S,
 )
 from ..controller.events import DomainEvent
 from ..hardware.hal import HardwareHAL
@@ -46,10 +47,12 @@ class DosingManager:
         self.ec_tolerance = 50.0
         self.max_ml_day = DEFAULT_MAX_DOSE_ML_DAY
         self.ml_today = 0.0
+        self.stock_ml: float | None = None  # remaining reagent inventory (optional)
         self._ml_day = ""
         self._limit_cooldown_until = 0.0
         self._task: asyncio.Task | None = None
         self._active_ph_channels: list[str] = []
+        self._last_ph_sample: float | None = None
 
     def snapshot(self) -> dict:
         return {
@@ -63,6 +66,8 @@ class DosingManager:
             "fault": self.fsm.ctx.fault_reason,
             "ml_today": self.ml_today,
             "max_ml_day": self.max_ml_day,
+            "stock_ml": self.stock_ml,
+            "stock_days_left": self.stock_days_left(),
         }
 
     def _roll_day(self) -> None:
@@ -85,6 +90,17 @@ class DosingManager:
             return False
         self.ml_today += ml
         return True
+
+    def _ph_in_band(self, ph: float) -> bool:
+        return abs(ph - self.desired_ph) <= self.ph_tolerance
+
+    def stock_days_left(self) -> float | None:
+        """Estimate days of stock left from today's dose rate (user-set remaining)."""
+        if self.stock_ml is None or self.stock_ml <= 0:
+            return None
+        if self.ml_today <= 0:
+            return None
+        return round(float(self.stock_ml) / self.ml_today, 1)
 
     def _channels_for(self, process: DosingProcess) -> list[str]:
         if process == DosingProcess.PH:
@@ -110,12 +126,14 @@ class DosingManager:
 
     async def _ph_channels_for_reading(self, ph: float | None) -> list[str]:
         if ph is None:
-            return self._channels_for(DosingProcess.PH)[:1]
+            return []
+        if self._ph_in_band(ph):
+            return []
         if ph < self.desired_ph and self.hal.has(ChannelRole.PH_UP.value):
             return [ChannelRole.PH_UP.value]
         if ph > self.desired_ph and self.hal.has(ChannelRole.PH_DOWN.value):
             return [ChannelRole.PH_DOWN.value]
-        return self._channels_for(DosingProcess.PH)[:1]
+        return []
 
     async def start(
         self, process: DosingProcess, safety_ok: bool, reason: str | None
@@ -142,10 +160,51 @@ class DosingManager:
                 )
             ]
 
-        channels = self._channels_for(process)
         if process == DosingProcess.PH:
             ph = valid_float(await self.hal.read_sensor(SensorRole.PH.value))
+            if ph is None:
+                return [
+                    DomainEvent(
+                        "dosing.rejected",
+                        "pH unavailable (NaN/missing) — pumps not started",
+                        "error",
+                        process="dosing",
+                    )
+                ]
+            if self._ph_in_band(ph):
+                return [
+                    DomainEvent(
+                        "dosing.rejected",
+                        "pH already in deadband — no dose",
+                        "info",
+                        process="dosing",
+                    )
+                ]
             channels = await self._ph_channels_for_reading(ph)
+            if not channels:
+                return [
+                    DomainEvent(
+                        "dosing.rejected",
+                        "No pH Up/Down channel for this correction",
+                        "error",
+                        process="dosing",
+                    )
+                ]
+            self._last_ph_sample = ph
+        elif process in (DosingProcess.NUTRIENTS, DosingProcess.NEUTRALIZE):
+            tds = await self._read_tds()
+            if tds is None:
+                return [
+                    DomainEvent(
+                        "dosing.rejected",
+                        "TDS unavailable (NaN/missing) — pumps not started",
+                        "error",
+                        process="dosing",
+                    )
+                ]
+            channels = self._channels_for(process)
+        else:
+            channels = self._channels_for(process)
         if not channels:
             return [
                 DomainEvent(
@@ -350,7 +409,12 @@ class DosingManager:
                     await self._all_off()
                     self.fsm.pulse_on_done()
                 elif self.fsm.state == DosingState.PULSE_OFF:
-                    await asyncio.sleep(DOSING_PULSE_OFF_S)
+                    settle = (
+                        PH_SETTLE_S
+                        if process == DosingProcess.PH
+                        else DOSING_PULSE_OFF_S
+                    )
+                    await asyncio.sleep(settle)
                     self.fsm.pulse_off_done()
                 elif self.fsm.state == DosingState.EVALUATE:
                     reached = await self._target_reached(process)
@@ -391,12 +455,12 @@ class DosingManager:
             if ph is None:
                 self.fsm.fault("ph_unavailable")
                 return True
-            using_down = ChannelRole.PH_DOWN.value in getattr(
-                self, "_active_ph_channels", []
-            )
-            if using_down:
-                return ph <= self.desired_ph
-            return ph >= self.desired_ph
+            # Probe health: sudden jump > 2.0 pH between pulses → abort
+            if self._last_ph_sample is not None and abs(ph - self._last_ph_sample) > 2.0:
+                self.fsm.fault("probe_unstable")
+                return True
+            self._last_ph_sample = ph
+            return self._ph_in_band(ph)
         tds = await self._read_tds()
         if tds is None:
             self.fsm.fault("tds_unavailable")

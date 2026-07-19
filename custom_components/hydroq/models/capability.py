@@ -33,7 +33,10 @@ class SensorRole(StrEnum):
     DO_RAW = "do_raw"
     WATER_TEMP = "water_temp"
     WATER_LEVEL = "water_level"
+    WATER_LEVEL_SECONDARY = "water_level_secondary"
     ESTOP = "emergency_stop"
+    LEAK = "leak"
+    FLOW_OK = "flow_ok"
     CO2 = "co2"
     IAQ = "iaq"
     AIR_PRESSURE = "air_pressure"
@@ -147,6 +150,7 @@ _LEGACY_ACTUATOR = {
     "solution_b": ChannelRole.NUTRIENT_B,
     "solution_c": ChannelRole.NUTRIENT_C,
     "ph_pump": ChannelRole.PH_UP,
+    "ph_down": ChannelRole.PH_DOWN,
     "neutralization": ChannelRole.NEUTRALIZATION,
     "irrigation_pump": ChannelRole.IRRIGATION,
 }
@@ -160,7 +164,10 @@ _LEGACY_SENSOR = {
     "do_raw": SensorRole.DO_RAW,
     "water_temp": SensorRole.WATER_TEMP,
     "water_level": SensorRole.WATER_LEVEL,
+    "water_level_secondary": SensorRole.WATER_LEVEL_SECONDARY,
     "emergency_stop": SensorRole.ESTOP,
+    "leak": SensorRole.LEAK,
+    "flow_ok": SensorRole.FLOW_OK,
     "co2": SensorRole.CO2,
     "iaq": SensorRole.IAQ,
     "air_pressure": SensorRole.AIR_PRESSURE,

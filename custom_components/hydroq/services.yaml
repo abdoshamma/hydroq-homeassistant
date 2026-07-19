@@ -3,6 +3,10 @@
     "name": "Create HydroQ dashboard",
     "description": "Recreate the HydroQ sidebar dashboard from dashboard_views.yaml (resolves entity IDs). Requires HACS: Mushroom, Bubble Card, Mini Graph Card, Vertical Stack In Card."
   },
+  "hydroq.export_support_bundle": {
+    "name": "Export support bundle",
+    "description": "Write hydroq_support_bundle.json (all zones, redacted) under the HA config folder and show a notification. Attach that file for support."
+  },
   "hydroq.start_irrigation": {
     "name": "Start irrigation",
     "description": "Start a HydroQ irrigation run.",

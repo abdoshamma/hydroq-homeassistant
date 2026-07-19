@@ -337,13 +337,15 @@ class HydroQController:
         else:
             now = dt_util.as_local(now)
         events: list[DomainEvent] = []
+        # Mid-process safety uses fresh alarms after cal-due is known
+        events += self._calibration_age_warn(now)
         safety = await self.device.read_safety()
         events += self.alarms.evaluate(safety)
-        events += self._calibration_age_warn(now)
         events += self._maybe_create_repairs(safety)
 
-        # Mid-process safety: abort busy work when actuators not allowed (e-stop / empty).
-        # Empty tank stops pumps only — lights stay under lighting manager (not water-gated).
+        # Mid-process safety: abort busy work when actuators not allowed (e-stop / empty / leak).
+        # Empty/leak stops pumps only — lights stay under lighting manager (not water-gated).
+        # E-stop also kills lights below.
         if not safety.actuators_allowed:
             reason = safety.reason or "safety"
             need_park = not self._parked_for_safety
@@ -383,6 +385,32 @@ class HydroQController:
             return events
 
         self._parked_for_safety = False
+
+        # Dry-run: flow sensor mapped + irrigation running + no flow after grace
+        if self.irrigation.fsm.busy and safety.flow_ok is False:
+            import time
+
+            elapsed = time.monotonic() - self.irrigation.fsm.ctx.started_monotonic
+            if elapsed >= 15.0:
+                events += await self.irrigation.stop("dry_run")
+                await self.device.stop_all_actuators(include_lights=False)
+                events.append(
+                    DomainEvent(
+                        "process_interrupted",
+                        "Irrigation dry-run (no flow proof)",
+                        "error",
+                        process="irrigation",
+                    )
+                )
+                events.append(
+                    DomainEvent(
+                        "alarm.dry_run",
+                        "Flow proof missing during irrigation",
+                        "error",
+                        process="irrigation",
+                    )
+                )
+                return events
 
         if self.system_mode == "Maintenance":
             return events
@@ -467,11 +495,12 @@ class HydroQController:
         return []
 
     def _calibration_age_warn(self, now: datetime) -> list[DomainEvent]:
-        """Remind once per day if any calibration is older than 30 days."""
+        """Remind once per day if any calibration is older than CAL_DUE_DAYS."""
+        from ..const import CAL_DUE_DAYS
+
         day = now.strftime("%Y-%m-%d")
-        if self._cal_warn_day == day:
-            return []
         events: list[DomainEvent] = []
+        due: list[str] = []
         for label, last in (
             ("pH", self.calibration.last_ph),
             ("TDS", self.calibration.last_tds),
@@ -480,15 +509,18 @@ class HydroQController:
             if last is None:
                 continue
             age = (dt_util.as_utc(now) - dt_util.as_utc(last)).days
-            if age >= 30:
-                events.append(
-                    DomainEvent(
-                        "calibration.due",
-                        f"{label} calibration is {age} days old — recalibrate recommended",
-                        "warning",
-                        process="calibration",
+            if age >= CAL_DUE_DAYS:
+                due.append(label)
+                if self._cal_warn_day != day:
+                    events.append(
+                        DomainEvent(
+                            "calibration.due",
+                            f"{label} calibration is {age} days old — recalibrate recommended",
+                            "warning",
+                            process="calibration",
+                        )
                     )
-                )
+        self.alarms.set_cal_due(due)
         if events:
             self._cal_warn_day = day
         return events
@@ -504,6 +536,7 @@ class HydroQController:
             "c": ChannelRole.NUTRIENT_C.value,
             "ph": ChannelRole.PH_UP.value,
             "ph_up": ChannelRole.PH_UP.value,
+            "ph_down": ChannelRole.PH_DOWN.value,
             "irrigation": ChannelRole.IRRIGATION.value,
         }
         ch = role_map.get(role.lower().strip())

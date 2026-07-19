@@ -3,13 +3,22 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers import entity_registry as er
+from typing import TYPE_CHECKING, Any
 
 from ..hardware.hal import HardwareHAL
 from ..models.capability import ChannelRole, SensorRole
 from ..util import valid_float
+
+if TYPE_CHECKING:
+    from homeassistant.core import HomeAssistant
+
+
+def _binary_on(value: Any) -> bool:
+    if isinstance(value, str):
+        return value.lower() in ("on", "true", "1")
+    if isinstance(value, (int, float)):
+        return bool(value)
+    return value is True
 
 
 @dataclass
@@ -20,10 +29,17 @@ class SafetyReading:
     tds: float | None
     water_temp: float | None
     reason: str | None = None
+    leak_active: bool = False
+    flow_ok: bool | None = None  # None = sensor not mapped
 
     @property
     def actuators_allowed(self) -> bool:
-        return self.water_ok and not self.estop_active and self.reason is None
+        return (
+            self.water_ok
+            and not self.estop_active
+            and not self.leak_active
+            and self.reason is None
+        )
 
 
 class DeviceManager:
@@ -33,20 +49,36 @@ class DeviceManager:
 
     async def read_safety(self) -> SafetyReading:
         level = await self.hal.read_sensor(SensorRole.WATER_LEVEL.value)
+        level2 = await self.hal.read_sensor(SensorRole.WATER_LEVEL_SECONDARY.value)
         estop = await self.hal.read_sensor(SensorRole.ESTOP.value)
+        leak = await self.hal.read_sensor(SensorRole.LEAK.value)
+        flow = await self.hal.read_sensor(SensorRole.FLOW_OK.value)
         ph = await self.hal.read_sensor(SensorRole.PH.value)
         tds = await self.hal.read_sensor(SensorRole.TDS.value)
         temp = await self.hal.read_sensor(SensorRole.WATER_TEMP.value)
 
         has_level = self.hal.capabilities.has_sensor(SensorRole.WATER_LEVEL.value)
+        has_level2 = self.hal.capabilities.has_sensor(
+            SensorRole.WATER_LEVEL_SECONDARY.value
+        )
         has_estop = self.hal.capabilities.has_sensor(SensorRole.ESTOP.value)
+        has_leak = self.hal.capabilities.has_sensor(SensorRole.LEAK.value)
+        has_flow = self.hal.capabilities.has_sensor(SensorRole.FLOW_OK.value)
 
         estop_active = False
         if has_estop:
-            if isinstance(estop, str):
-                estop_active = estop.lower() in ("on", "true", "1")
-            elif isinstance(estop, (int, float)):
-                estop_active = bool(estop)
+            estop_active = _binary_on(estop)
+
+        leak_active = False
+        if has_leak:
+            if leak is None:
+                leak_active = True  # fail-safe: missing leak entity while mapped
+            else:
+                leak_active = _binary_on(leak)
+
+        flow_ok: bool | None = None
+        if has_flow:
+            flow_ok = False if flow is None else _binary_on(flow)
 
         reason = None
 
@@ -55,18 +87,27 @@ class DeviceManager:
         elif level is None:
             water_ok = False
             reason = "water_level_unavailable"
-        elif isinstance(level, str) and level.lower() in ("on", "true", "1"):
-            water_ok = True
-        elif level is True:
+        elif _binary_on(level):
             water_ok = True
         else:
             water_ok = False
             reason = "tank_empty"
 
+        # Dual level: secondary mapped → both must read OK
+        if water_ok and has_level2:
+            if level2 is None:
+                water_ok = False
+                reason = "water_level_secondary_unavailable"
+            elif not _binary_on(level2):
+                water_ok = False
+                reason = "tank_empty_secondary"
+
         if has_estop and estop is None and reason is None:
             reason = "estop_unavailable"
         if estop_active:
             reason = "emergency_stop"
+        if leak_active:
+            reason = "leak_detected"
 
         return SafetyReading(
             water_ok=water_ok,
@@ -75,6 +116,8 @@ class DeviceManager:
             tds=valid_float(tds),
             water_temp=valid_float(temp),
             reason=reason,
+            leak_active=leak_active,
+            flow_ok=flow_ok,
         )
 
     async def stop_all_actuators(self, *, include_lights: bool = True) -> None:
@@ -90,6 +133,8 @@ class DeviceManager:
         """Press firmware Reset Emergency Stop on the same device as the e-stop sensor."""
         if self.hass is None:
             return False
+        from homeassistant.helpers import entity_registry as er
+
         estop = self.hal.capabilities.sensors.get(SensorRole.ESTOP.value)
         if not estop or not estop.entity_id:
             return False
@@ -108,5 +153,5 @@ class DeviceManager:
                 return True
         return False
 
-    def snapshot(self) -> dict:
+    def snapshot(self) -> dict[str, Any]:
         return {"simulation": self.hal.capabilities.simulation}

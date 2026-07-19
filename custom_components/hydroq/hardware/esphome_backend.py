@@ -27,7 +27,13 @@ class EsphomeHAL(HardwareHAL):
         st = self.hass.states.get(ch.entity_id)
         if st is None:
             return None
-        if role in ("water_level", "emergency_stop"):
+        if role in (
+            "water_level",
+            "water_level_secondary",
+            "emergency_stop",
+            "leak",
+            "flow_ok",
+        ):
             return st.state
         from ..util import valid_float
 

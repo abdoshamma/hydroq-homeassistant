@@ -34,6 +34,14 @@ async def async_setup_entry(
         HydroQEcSensor(c, "target_ec", "Target EC", live=False),
         HydroQTdsSensor(c, "target_tds", "Target TDS", live=False),
         HydroQTdsFactorSensor(c),
+        HydroQMlSensor(c, "dose_ml_today", "Dose Today", "ml"),
+        HydroQMlSensor(c, "dose_ml_budget", "Dose Budget", "ml"),
+        HydroQMlSensor(c, "stock_ml", "Stock Remaining", "ml"),
+        HydroQMlSensor(c, "stock_days_left", "Stock Days Left", "d"),
+        HydroQTextSensor(c, "probe_health", "Probe Health"),
+        HydroQTextSensor(c, "offline_mode", "Offline Mode"),
+        HydroQOfflineHoursSensor(c),
+        HydroQTextSensor(c, "last_cal_result", "Last Cal Result"),
     ]
     for i in range(1, SCHEDULE_SLOT_COUNT + 1):
         entities.append(
@@ -146,3 +154,39 @@ class HydroQTdsFactorSensor(HydroQEntity, SensorEntity):
     def native_value(self) -> str:
         factor = int(self.coordinator.data.get("tds_factor", 500) or 500)
         return f"ppm {factor}"
+
+
+class HydroQMlSensor(HydroQEntity, SensorEntity):
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_icon = "mdi:cup-water"
+
+    def __init__(
+        self, coordinator: HydroQCoordinator, key: str, name: str, unit: str
+    ) -> None:
+        super().__init__(coordinator, key)
+        self._attr_name = name
+        self._attr_native_unit_of_measurement = unit
+
+    @property
+    def native_value(self) -> float | None:
+        val = self.coordinator.data.get(self._key)
+        if val is None:
+            return None
+        return round(float(val), 1)
+
+
+class HydroQOfflineHoursSensor(HydroQEntity, SensorEntity):
+    _attr_name = "Offline Hours Left"
+    _attr_native_unit_of_measurement = "h"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_icon = "mdi:timer-sand"
+
+    def __init__(self, coordinator: HydroQCoordinator) -> None:
+        super().__init__(coordinator, "offline_hours_left")
+
+    @property
+    def native_value(self) -> float | None:
+        val = self.coordinator.data.get(self._key)
+        if val is None:
+            return None
+        return round(float(val), 1)

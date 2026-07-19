@@ -31,6 +31,24 @@ views:
         show_state: true
         show_icon: true
       - type: entity
+        entity: __HAL.leak__
+        name: Leak
+        show_name: true
+        show_state: true
+        show_icon: true
+      - type: entity
+        entity: __HQ.probe_health__
+        name: Probes
+        show_name: true
+        show_state: true
+        show_icon: true
+      - type: entity
+        entity: __HQ.offline_mode__
+        name: Offline
+        show_name: true
+        show_state: true
+        show_icon: true
+      - type: entity
         entity: __HQ.alarm_message__
         name: Alarm
         show_name: true
@@ -876,8 +894,37 @@ views:
               state: true
           - type: tile
             entity: __HAL.water_level__
-            name: Level switch
+            name: Level (primary)
             icon: mdi:waves
+          - type: tile
+            entity: __HAL.water_level_secondary__
+            name: Level (secondary)
+            icon: mdi:waves-arrow-up
+          - type: tile
+            entity: __HAL.leak__
+            name: Leak detector
+            icon: mdi:water-alert
+            color: red
+          - type: tile
+            entity: __HQ.probe_health__
+            name: Probe health
+            icon: mdi:heart-pulse
+          - type: tile
+            entity: __HQ.dose_ml_today__
+            name: Dose today
+            icon: mdi:cup-water
+          - type: tile
+            entity: __HQ.dose_ml_budget__
+            name: Dose budget
+            icon: mdi:gauge
+          - type: tile
+            entity: __HQ.stock_ml__
+            name: Stock remaining
+            icon: mdi:barrel
+          - type: tile
+            entity: __HQ.stock_days_left__
+            name: Stock days left
+            icon: mdi:calendar-clock
 
   # ─── 3. IRRIGATION ─────────────────────────────────────────────────────────
   - type: sections
@@ -889,6 +936,18 @@ views:
       - type: entity
         entity: __HQ.irrigation_active__
         name: Running
+        show_name: true
+        show_state: true
+        show_icon: true
+      - type: entity
+        entity: __HQ.offline_mode__
+        name: Offline
+        show_name: true
+        show_state: true
+        show_icon: true
+      - type: entity
+        entity: __HQ.offline_hours_left__
+        name: Hours left
         show_name: true
         show_state: true
         show_icon: true
@@ -910,6 +969,18 @@ views:
         show_name: true
         show_state: true
         show_icon: true
+      - type: entity
+        entity: __HAL.flow_ok__
+        name: Flow
+        show_name: true
+        show_state: true
+        show_icon: true
+      - type: entity
+        entity: __HAL.leak__
+        name: Leak
+        show_name: true
+        show_state: true
+        show_icon: true
     sections:
       - type: grid
         column_span: 4
@@ -926,6 +997,15 @@ views:
             layout: horizontal
             tap_action:
               action: toggle
+          - type: tile
+            entity: __HAL.flow_ok__
+            name: Flow proof
+            icon: mdi:pipe-valve
+          - type: tile
+            entity: __HAL.leak__
+            name: Leak
+            icon: mdi:water-alert
+            color: red
           - type: custom:mushroom-entity-card
             entity: __HQ.start_irrigation__
             name: Start
@@ -1499,6 +1579,12 @@ views:
         show_name: true
         show_state: true
         show_icon: true
+      - type: entity
+        entity: __HAL.leak__
+        name: Leak
+        show_name: true
+        show_state: true
+        show_icon: true
     sections:
       - type: grid
         column_span: 4
@@ -1511,7 +1597,7 @@ views:
             card:
               type: custom:mushroom-template-card
               primary: "{{ states('__HQ.alarm_message__') }}"
-              secondary: Resolve below, then confirm water / e-stop are clear
+              secondary: Resolve below, then confirm water / e-stop / leak are clear
               icon: mdi:alert-octagon
               icon_color: red
               layout: horizontal
@@ -1559,8 +1645,25 @@ views:
             icon: mdi:skull
           - type: tile
             entity: __HAL.water_level__
-            name: Level switch
+            name: Level (primary)
             icon: mdi:waves
+          - type: tile
+            entity: __HAL.water_level_secondary__
+            name: Level (secondary)
+            icon: mdi:waves-arrow-up
+          - type: tile
+            entity: __HAL.leak__
+            name: Leak detector
+            icon: mdi:water-alert
+            color: red
+          - type: tile
+            entity: __HAL.flow_ok__
+            name: Flow proof
+            icon: mdi:pipe-valve
+          - type: tile
+            entity: __HQ.probe_health__
+            name: Probe health
+            icon: mdi:heart-pulse
 
           - type: heading
             heading: Response
@@ -1681,21 +1784,36 @@ views:
                 primary: >-
                   {% set g = states('__HAL.cal_guide_ph__') %}
                   {{ g if g not in ['unknown','unavailable','none',''] else 'Map pH Cal Guide (reconfigure HydroQ)' }}
-                secondary: Follow steps — wait for Ready
+                secondary: Wait until guide says Ready — then Save
                 icon: mdi:clipboard-text
                 icon_color: amber
                 layout: horizontal
               - type: custom:mushroom-template-card
-                primary: Save detected buffer
-                secondary: Auto 6.86 or 4.0 when Ready
+                primary: Save detected buffer (recommended)
+                secondary: >-
+                  {% set g = states('__HAL.cal_guide_ph__') %}
+                  {{ 'Ready — tap to save' if 'Ready' in g else 'Disabled until Ready' }}
                 icon: mdi:auto-fix
-                icon_color: green
+                icon_color: >-
+                  {% set g = states('__HAL.cal_guide_ph__') %}
+                  {{ 'green' if 'Ready' in g else 'disabled' }}
                 layout: horizontal
                 tap_action:
                   action: call-service
                   service: button.press
                   target:
                     entity_id: __HQ.cal_ph_auto__
+              - type: custom:mushroom-entity-card
+                entity: __HQ.last_cal_result__
+                name: Last cal result
+                icon: mdi:check-decagram
+                layout: horizontal
+              - type: custom:mushroom-entity-card
+                entity: __HQ.last_cal_ph__
+                name: Last pH cal
+                layout: horizontal
+              - type: markdown
+                content: "**Advanced** — only if Auto fails"
               - type: custom:mushroom-template-card
                 primary: Save 6.86
                 secondary: Only when guide says 6.86 Ready
@@ -1718,10 +1836,6 @@ views:
                   service: button.press
                   target:
                     entity_id: __HQ.cal_ph_acid__
-              - type: custom:mushroom-entity-card
-                entity: __HQ.last_cal_ph__
-                name: Last pH cal
-                layout: horizontal
           - type: custom:vertical-stack-in-card
             title: EC / TDS wizard
             cards:
@@ -1740,21 +1854,31 @@ views:
               - type: custom:mushroom-template-card
                 primary: >-
                   {% set g = states('__HAL.cal_guide_tds__') %}
-                  {{ g if g not in ['unknown','unavailable','none',''] else 'Map TDS Cal Guide (reconfigure HydroQ)' }}
-                secondary: Use 707 ppm standard ~25°C
+                  {{ g if g not in ['unknown','unavailable','none',''] else 'Map TDS Cal Guide' }}
+                secondary: Wait until Ready — then Calibrate
                 icon: mdi:clipboard-text
                 icon_color: amber
                 layout: horizontal
               - type: custom:mushroom-template-card
-                primary: Calibrate EC / TDS
-                icon: mdi:flask-outline
-                icon_color: teal
+                primary: Calibrate TDS
+                secondary: >-
+                  {% set g = states('__HAL.cal_guide_tds__') %}
+                  {{ 'Ready — tap to save' if 'Ready' in g else 'Disabled until Ready' }}
+                icon: mdi:water-check
+                icon_color: >-
+                  {% set g = states('__HAL.cal_guide_tds__') %}
+                  {{ 'green' if 'Ready' in g else 'disabled' }}
                 layout: horizontal
                 tap_action:
                   action: call-service
                   service: button.press
                   target:
                     entity_id: __HQ.cal_ec__
+              - type: custom:mushroom-entity-card
+                entity: __HQ.last_cal_result__
+                name: Last cal result
+                icon: mdi:check-decagram
+                layout: horizontal
               - type: custom:mushroom-entity-card
                 entity: __HQ.last_cal_tds__
                 name: Last TDS cal
@@ -1765,33 +1889,43 @@ views:
               - type: custom:mushroom-entity-card
                 entity: __HAL.do__
                 name: Live DO
-                icon: mdi:gas-cylinder
+                icon: mdi:molecule
                 primary_info: name
                 secondary_info: state
               - type: custom:mushroom-entity-card
                 entity: __HAL.do_raw__
-                name: DO probe (V)
+                name: DO ADC (V)
                 icon: mdi:flash
                 primary_info: name
                 secondary_info: state
               - type: custom:mushroom-template-card
                 primary: >-
                   {% set g = states('__HAL.cal_guide_do__') %}
-                  {{ g if g not in ['unknown','unavailable','none',''] else 'Map DO Cal Guide (reconfigure HydroQ)' }}
-                secondary: Dry tip in air
+                  {{ g if g not in ['unknown','unavailable','none',''] else 'Map DO Cal Guide' }}
+                secondary: Air cal — wait until Ready
                 icon: mdi:clipboard-text
                 icon_color: amber
                 layout: horizontal
               - type: custom:mushroom-template-card
-                primary: Air calibration
-                icon: mdi:air-filter
-                icon_color: cyan
+                primary: Calibrate DO (air)
+                secondary: >-
+                  {% set g = states('__HAL.cal_guide_do__') %}
+                  {{ 'Ready — tap to save' if 'Ready' in g else 'Disabled until Ready' }}
+                icon: mdi:weather-windy
+                icon_color: >-
+                  {% set g = states('__HAL.cal_guide_do__') %}
+                  {{ 'green' if 'Ready' in g else 'disabled' }}
                 layout: horizontal
                 tap_action:
                   action: call-service
                   service: button.press
                   target:
                     entity_id: __HQ.cal_do__
+              - type: custom:mushroom-entity-card
+                entity: __HQ.last_cal_result__
+                name: Last cal result
+                icon: mdi:check-decagram
+                layout: horizontal
               - type: custom:mushroom-entity-card
                 entity: __HQ.last_cal_do__
                 name: Last DO cal
@@ -1842,13 +1976,22 @@ views:
                     entity_id: __HQ.test_pump_c__
               - type: custom:mushroom-entity-card
                 entity: __HQ.test_ph_pump__
-                name: Test pH
+                name: Test pH Up
                 icon: mdi:ph
                 tap_action:
                   action: call-service
                   service: button.press
                   target:
                     entity_id: __HQ.test_ph_pump__
+              - type: custom:mushroom-entity-card
+                entity: __HQ.test_ph_down__
+                name: Test pH Down
+                icon: mdi:ph
+                tap_action:
+                  action: call-service
+                  service: button.press
+                  target:
+                    entity_id: __HQ.test_ph_down__
               - type: custom:mushroom-entity-card
                 entity: __HQ.test_irrigation__
                 name: Test irrig.
@@ -1870,7 +2013,7 @@ views:
             content: |
               **pH** — follow guide text → wait for **Ready** → **Save detected** (6.86 then 4.0).
               Rejects unstable / wrong-buffer samples.
-              **TDS** — 707 ppm ~25°C → wait Ready → Calibrate.
+              **TDS** — 100 ppm (100 mg/L) ~25°C → wait Ready → Calibrate.
               **DO** — dry tip in air → wait Ready → Air calibration.
 
   # ─── 8. SYSTEM (diagnostics + trends) ──────────────────────────────────────
@@ -1906,6 +2049,24 @@ views:
             heading: Diagnostics
             heading_style: title
             icon: mdi:stethoscope
+          - type: markdown
+            content: |
+              **Farm** tab = all zones health strip.
+              **Support bundle** — Developer Tools → Services → `hydroq.export_support_bundle`
+              → writes `hydroq_support_bundle.json` in the HA config folder (secrets redacted).
+            grid_options:
+              columns: full
+          - type: custom:mushroom-template-card
+            primary: Export support bundle
+            secondary: All zones → config/hydroq_support_bundle.json
+            icon: mdi:package-variant-closed
+            icon_color: teal
+            layout: horizontal
+            tap_action:
+              action: call-service
+              service: hydroq.export_support_bundle
+            grid_options:
+              columns: full
           - type: tile
             entity: __HQ.status__
             name: Zone status
@@ -1971,6 +2132,30 @@ views:
             name: Last DO cal
             icon: mdi:calendar-check
           - type: tile
+            entity: __HQ.probe_health__
+            name: Probe health
+            icon: mdi:heart-pulse
+          - type: tile
+            entity: __HQ.offline_mode__
+            name: Offline mode
+            icon: mdi:brain
+          - type: tile
+            entity: __HQ.offline_hours_left__
+            name: Offline hours left
+            icon: mdi:timer-sand
+          - type: tile
+            entity: __HQ.dose_ml_today__
+            name: Dose today
+            icon: mdi:cup-water
+          - type: tile
+            entity: __HQ.dose_ml_budget__
+            name: Daily budget
+            icon: mdi:gauge
+          - type: tile
+            entity: __HQ.stock_days_left__
+            name: Stock days left
+            icon: mdi:calendar-clock
+          - type: tile
             entity: __HQ.irrigation_state__
             name: Irrigation FSM
             icon: mdi:water-pump
@@ -1996,8 +2181,24 @@ views:
             icon: mdi:skull
           - type: tile
             entity: __HAL.water_level__
-            name: Level
+            name: Level (primary)
             icon: mdi:waves
+          - type: tile
+            entity: __HAL.water_level_secondary__
+            name: Level (secondary)
+            icon: mdi:waves-arrow-up
+          - type: tile
+            entity: __HAL.leak__
+            name: Leak
+            icon: mdi:water-alert
+          - type: tile
+            entity: __HAL.flow_ok__
+            name: Flow OK
+            icon: mdi:pipe-valve
+          - type: tile
+            entity: __HAL.ph_down__
+            name: pH Down pump
+            icon: mdi:ph
           - type: tile
             entity: __HAL.ph__
             name: pH sensor
@@ -2171,6 +2372,8 @@ views:
               - **E-Stop** — same emergency cut as Overview.
               - **Running / State** — idle vs irrigating vs fault. Read only.
               - **Water present** — must be OK or the pump will not run (dry-run protect).
+              - **Flow OK / Leak** — Stage 1 protect sensors (when mapped). Leak trips hard cut.
+              - **Offline brain** — if HA/API dies, MCU keeps last irrigation schedule for N hours (default 12), then safe-stop. Dosing never runs offline.
               - **Manual pump (Advanced)** — bypass HydroQ. Technician only; can fight Auto.
             grid_options:
               columns: full
@@ -2277,11 +2480,13 @@ views:
               **Service (technicians)**
               - **Cal pH neutral / acid** — buffer solutions → press when reading is stable.
               - **Cal EC / DO** — standard solution or air cal → press when stable.
-              - **Last cal dates** — know when probes need service again.
-              - **Pump tests (10 s)** — confirm, then watch the line. Checks wiring & flow.
+              - **Cal pH / EC / DO wizards** — wait for **Ready**, then Save (Auto for pH). Check **Last cal result**.
+              - **Last cal dates** — know when probes need service again (≥30 d → alarm).
+              - **Pump tests (10 s)** — pH Up / pH Down / A / B / C. Confirm, then watch the line.
+              - **Dose today / budget / stock** — chemistry budget (Stage 2); map stock ml in options.
 
               **System**
-              Diagnostics, simulation flag, hardware tiles, and 7-day graphs for installers/admins.
+              Diagnostics, simulation flag, hardware tiles (leak, flow, dual level, pH Down, offline), and 7-day graphs for installers/admins.
               Daily operators stay on Overview / Water / Irrigation / Lights.
             grid_options:
               columns: full
@@ -2295,11 +2500,11 @@ views:
             icon: mdi:check-decagram
           - type: markdown
             content: |
-              1. Start each shift on **Overview** — Status, Water OK, Alarm.
+              1. Start each shift on **Overview** (or **Farm** for multi-zone) — Status, Water OK, Leak, Probes, Alarm.
               2. Prefer **Balance** and **Auto** over raw pump tiles.
               3. Use **Emergency stop** only for real emergencies; clear hardware e-stop after.
               4. Keep probes calibrated on **Service** — bad sensors → bad doses.
               5. Change crop targets via **Grow** stage, not by guessing on Water every day.
-              6. After an update, run **hydroq.create_dashboard** if this Info tab is missing.
+              6. After an update, run **hydroq.create_dashboard**. For support, run **hydroq.export_support_bundle**.
             grid_options:
               columns: full

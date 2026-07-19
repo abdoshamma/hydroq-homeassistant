@@ -37,10 +37,14 @@ from ..const import (
     EM_PUMP_C,
     EM_PUMP_NEUTRAL,
     EM_PUMP_PH,
+    EM_PUMP_PH_DOWN,
     EM_TDS,
     EM_TDS_RAW,
     EM_WATER_LEVEL,
+    EM_WATER_LEVEL_SECONDARY,
     EM_WATER_TEMP,
+    EM_LEAK,
+    EM_FLOW_OK,
     PROFILE_A,
 )
 
@@ -54,8 +58,11 @@ _HINTS: dict[str, tuple[str, ...]] = {
     EM_DO: ("dissolved_oxygen", "dissolved oxygen", "do_sensor", "do_value"),
     EM_DO_RAW: ("do_raw", "do raw"),
     EM_WATER_TEMP: ("water_temperature", "water_temp"),
-    EM_WATER_LEVEL: ("water_level",),
+    EM_WATER_LEVEL: ("water_level_switch", "water_level"),
+    EM_WATER_LEVEL_SECONDARY: ("water_level_secondary", "level_secondary"),
     EM_ESTOP: ("emergency_stop_active", "emergency_stop"),
+    EM_LEAK: ("leak_detector", "leak"),
+    EM_FLOW_OK: ("flow_ok", "flow"),
     EM_CO2: ("_co2", " co2", "co2"),
     EM_IAQ: ("_iaq", " iaq", "iaq"),
     EM_AIR_PRESSURE: ("air_pressure", "air pressure"),
@@ -68,6 +75,7 @@ _HINTS: dict[str, tuple[str, ...]] = {
     EM_PUMP_B: ("solution_b_pump",),
     EM_PUMP_C: ("solution_c_pump",),
     EM_PUMP_PH: ("ph_up_pump", "ph_pump"),
+    EM_PUMP_PH_DOWN: ("ph_down_pump", "ph_down"),
     EM_PUMP_NEUTRAL: ("neutralization_pump",),
     EM_CAL_PH_NEUTRAL: ("calibrate_ph_6", "calibrate_ph_7"),
     EM_CAL_PH_ACID: ("calibrate_ph_4",),
@@ -164,6 +172,10 @@ def suggest_entity_map(
                 if ent.domain != domain:
                     continue
                 hay = f"{ent.entity_id} {ent.original_name or ''}".lower()
+                if role == EM_WATER_LEVEL and "secondary" in hay:
+                    continue
+                if role == EM_WATER_LEVEL_SECONDARY and "secondary" not in hay:
+                    continue
                 if role == EM_DO and "do_raw" in hay:
                     continue
                 if role == EM_PH and ("ph_adc" in hay or "ph_raw" in hay):
@@ -176,7 +188,14 @@ def suggest_entity_map(
                     continue
                 if role == EM_IAQ and ("accuracy" in hay or "class" in hay):
                     continue
-                if role in (EM_PUMP_A, EM_PUMP_B, EM_PUMP_C, EM_PUMP_PH, EM_PUMP_NEUTRAL):
+                if role in (
+                    EM_PUMP_A,
+                    EM_PUMP_B,
+                    EM_PUMP_C,
+                    EM_PUMP_PH,
+                    EM_PUMP_PH_DOWN,
+                    EM_PUMP_NEUTRAL,
+                ):
                     if domain == "number" and "control" in hay:
                         continue
                 if any(h in hay for h in hints):
@@ -202,7 +221,10 @@ def suggest_entity_map(
         (EM_DO_RAW, ("sensor",)),
         (EM_WATER_TEMP, ("sensor",)),
         (EM_WATER_LEVEL, ("binary_sensor",)),
+        (EM_WATER_LEVEL_SECONDARY, ("binary_sensor",)),
         (EM_ESTOP, ("binary_sensor",)),
+        (EM_LEAK, ("binary_sensor",)),
+        (EM_FLOW_OK, ("binary_sensor",)),
         (EM_CO2, ("sensor",)),
         (EM_IAQ, ("sensor",)),
         (EM_AIR_PRESSURE, ("sensor",)),
@@ -215,6 +237,7 @@ def suggest_entity_map(
         (EM_PUMP_B, ("fan", "number")),
         (EM_PUMP_C, ("fan", "number")),
         (EM_PUMP_PH, ("fan", "number")),
+        (EM_PUMP_PH_DOWN, ("fan", "number")),
         (EM_PUMP_NEUTRAL, ("fan", "number")),
         (EM_CAL_PH_NEUTRAL, ("button",)),
         (EM_CAL_PH_ACID, ("button",)),
